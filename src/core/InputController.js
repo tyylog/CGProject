@@ -10,7 +10,11 @@ export class InputController {
             d: false,
             shift: false,
             space: false,
-            mouseLeft: false,
+        };
+
+        this.mouseButtons = {
+            left: false,
+            right: false,
         };
 
         this.mouseDelta = { x: 0, y: 0 };
@@ -48,11 +52,18 @@ export class InputController {
         });
 
         window.addEventListener('mousedown', (e) => {
-            if (e.button === 0) this.keys.mouseLeft = true;
+            if (e.button === 0) this.mouseButtons.left = true;
+            if (e.button === 2) this.mouseButtons.right = true;
         });
 
         window.addEventListener('mouseup', (e) => {
-            if (e.button === 0) this.keys.mouseLeft = false;
+            if (e.button === 0) this.mouseButtons.left = false;
+            if (e.button === 2) this.mouseButtons.right = false;
+        });
+
+        // 마우스 오른쪽 클릭 메뉴 비활성화
+        this.domElement.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
         });
     }
 
