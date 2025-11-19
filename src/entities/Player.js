@@ -7,8 +7,6 @@ export class Player extends Character {
     constructor(scene, ground) {
         super(scene);
         this.ground = ground;
-        // 임시 메쉬 높이 때문에 기본 offset을 0.5로 둠; 모델 로드 후 보정함
-        this.modelBaseOffset = 0.5;
 
         // 임시 메쉬 (로딩 중)
         const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
@@ -26,15 +24,17 @@ export class Player extends Character {
 
         this.speed = 5;        // m/s
         this.runMultiplier = 2;
-        this.jumpSpeed = 8;
+        this.jumpSpeed = 5;
         this.velocityY = 0;
         this.isGrounded = true;
 
-        this.cameraOffset = new THREE.Vector3(0, 2, 10);
+        this.cameraOffset = new THREE.Vector3(0, 4, 5);
 
         // 캐릭터 회전 관련
         this.targetRotation = 0;  // 목표 회전각
         this.rotationSpeed = 10;  // 회전 속도 (높을수록 빠름)
+        this.isAttacking = false;  // 공격 중 플래그
+        this.isDying = false;  // 죽음 애니메이션 재생 중 플래그
 
         // 모델 로드
         this._loadModel();
@@ -56,6 +56,12 @@ export class Player extends Character {
                         child.castShadow = true;
                         child.receiveShadow = true;
                     }
+
+                    // attackhitBox 숨기기
+                    if (child.name === 'attackHitbox') {
+                        child.visible = false;
+                        console.log('attackhitBox hidden');
+                    }
                 });
 
                 // 모델 크기 조정 (필요시)
@@ -64,15 +70,6 @@ export class Player extends Character {
                 // 메쉬를 모델로 교체
                 this.mesh = this.model;
                 this.scene.add(this.mesh);
-
-                // 모델 하단을 y=0(발이 바닥)에 맞추기
-                const bbox = new THREE.Box3().setFromObject(this.model);
-                const minY = bbox.min.y;
-                if (minY !== 0) {
-                    this.model.position.y -= minY;
-                }
-                // 보정했으니 base offset 제거
-                this.modelBaseOffset = 0;
 
                 // 애니메이션 설정
                 this.mixer = new THREE.AnimationMixer(this.model);
@@ -89,6 +86,26 @@ export class Player extends Character {
                     this.currentAction = this.actions['Idle'];
                     this.currentAction.play();
                 }
+
+                // 애니메이션 종료 이벤트 리스너
+                this.mixer.addEventListener('finished', (e) => {
+                    const finishedAction = e.action;
+                    const clipName = finishedAction.getClip().name;
+
+                    // 공격 애니메이션이 끝나면 Idle로 전환
+                    if (clipName === 'MouseLeft' || clipName === 'MouseRight' || clipName === 'Jump') {
+                        this.playAnimation('Idle', true);
+                        this.isAttacking = false;  // 공격 종료
+                    }
+
+                    // Death 애니메이션이 끝나면 게임오버 처리
+                    if (clipName === 'Death') {
+                        console.log('Death animation finished, calling game over');
+                        if (typeof this.onDeathCallback === 'function') {
+                            this.onDeathCallback(this);
+                        }
+                    }
+                });
 
                 this.isModelLoaded = true;
                 console.log('Player model loaded successfully');
@@ -151,10 +168,26 @@ export class Player extends Character {
         return right;
     }
 
+    die() {
+        // 죽음 애니메이션 재생 (게임오버는 애니메이션 종료 후 호출됨)
+        if (!this.isDying && this.isModelLoaded) {
+            this.isDying = true;
+            this.playAnimation('Death', false);
+            console.log('Player death animation started');
+        }
+        // onDeathCallback은 Death 애니메이션이 끝난 후 호출됨 (finished 이벤트에서)
+    }
+
     update(delta, input) {
         // 애니메이션 믹서 업데이트
         if (this.mixer) {
             this.mixer.update(delta);
+        }
+
+        // 죽은 상태에서는 입력 처리 안 함
+        if (this.isDying) {
+            this.updateCollider();
+            return;
         }
 
         // yaw/pitch는 input 쪽에서 업데이트됨
@@ -169,10 +202,13 @@ export class Player extends Character {
 
         const move = new THREE.Vector3();
 
-        if (input.keys.w) move.add(forward);
-        if (input.keys.s) move.addScaledVector(forward, -1);
-        if (input.keys.a) move.addScaledVector(right, -1);
-        if (input.keys.d) move.add(right);
+        // 공격 중이 아닐 때만 이동 가능
+        if (!this.isAttacking) {
+            if (input.keys.w) move.add(forward);
+            if (input.keys.s) move.addScaledVector(forward, -1);
+            if (input.keys.a) move.addScaledVector(right, -1);
+            if (input.keys.d) move.add(right);
+        }
 
         const isMoving = move.lengthSq() > 0;
 
@@ -192,7 +228,7 @@ export class Player extends Character {
         this.mesh.position.y += this.velocityY * delta;
 
         // 바닥에 붙이기
-        const groundY = this.ground.position.y + (this.modelBaseOffset || 0);
+        const groundY = this.ground.position.y + 0.5;
         if (this.mesh.position.y <= groundY) {
             this.mesh.position.y = groundY;
             this.velocityY = 0;
@@ -209,6 +245,11 @@ export class Player extends Character {
     }
 
     _updateRotation(delta, input, isMoving) {
+        // MouseRight 공격 중에는 회전 불가
+        if (this.isAttacking) {
+            return;
+        }
+
         // 이동 중일 때 이동 방향에 따라 목표 회전각 설정
         if (isMoving) {
             let rotationOffset = 0;
@@ -269,8 +310,14 @@ export class Player extends Character {
             return;
         }
         if (input.mouseButtons.right) {
+            this.isAttacking = true;  // 공격 시작
             this.playAnimation('MouseRight', false);
             return;
+        }
+
+        // 마우스 오른쪽 버튼을 떼면 공격 취소
+        if (this.isAttacking && !input.mouseButtons.right) {
+            this.isAttacking = false;
         }
 
         // 점프
