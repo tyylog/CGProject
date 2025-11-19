@@ -236,6 +236,10 @@ export class Player extends Character {
             this.isGrounded = false;
         }
 
+        // 중력 적용 및 y 위치 업데이트
+        this.velocityY -= 9.8 * delta; // 중력
+        this.mesh.position.y += this.velocityY * delta;
+
         // 바닥에 붙이기
         const groundY = this.ground.position.y + (this.modelBaseOffset || 0);
         if (this.mesh.position.y <= groundY) {
@@ -243,9 +247,6 @@ export class Player extends Character {
             this.velocityY = 0;
             this.isGrounded = true;
         }
-
-        this.velocityY -= 9.8 * delta; // 중력
-        this.mesh.position.y += this.velocityY * delta;
 
         // 캐릭터 회전 처리
         this._updateRotation(delta, input, isMoving);
