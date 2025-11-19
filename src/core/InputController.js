@@ -73,7 +73,7 @@ export class InputController {
         this.pitch -= this.mouseDelta.y * this.mouseSensitivity;
 
         // 상하 회전 제한 (-90도 ~ 90도)
-        this.pitch = Math.max(-Math.PI / 3, Math.min(0, this.pitch));
+        this.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 6, this.pitch));
 
         // 한 프레임마다 delta는 초기화해줘야 다음 프레임에서 “변화량”만 반영됨
         this.mouseDelta.x = 0;

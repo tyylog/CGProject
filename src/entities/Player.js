@@ -8,6 +8,8 @@ export class Player extends Character {
         super(scene);
         this.ground = ground;
 
+        this.modelBaseOffset = 0.5;
+
         // 임시 메쉬 (로딩 중)
         const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
         const playerMaterial = new THREE.MeshLambertMaterial({ color: 0x0099ff });
@@ -70,6 +72,16 @@ export class Player extends Character {
                 // 메쉬를 모델로 교체
                 this.mesh = this.model;
                 this.scene.add(this.mesh);
+
+                // 모델 하단을 y=0(발이 바닥)에 맞추기
+                const bbox = new THREE.Box3().setFromObject(this.model);
+                const minY = bbox.min.y;
+                if (minY !== 0) {
+                    this.model.position.y -= minY;
+                }
+                
+                // 보정했으니 base offset 제거
+                this.modelBaseOffset = 0;
 
                 // 애니메이션 설정
                 this.mixer = new THREE.AnimationMixer(this.model);
@@ -224,16 +236,16 @@ export class Player extends Character {
             this.isGrounded = false;
         }
 
-        this.velocityY -= 9.8 * delta; // 중력
-        this.mesh.position.y += this.velocityY * delta;
-
         // 바닥에 붙이기
-        const groundY = this.ground.position.y + 0.5;
+        const groundY = this.ground.position.y + (this.modelBaseOffset || 0);
         if (this.mesh.position.y <= groundY) {
             this.mesh.position.y = groundY;
             this.velocityY = 0;
             this.isGrounded = true;
         }
+
+        this.velocityY -= 9.8 * delta; // 중력
+        this.mesh.position.y += this.velocityY * delta;
 
         // 캐릭터 회전 처리
         this._updateRotation(delta, input, isMoving);
