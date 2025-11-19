@@ -83,6 +83,12 @@ export class Enemy extends Character {
                         child.castShadow = true;
                         child.receiveShadow = true;
                     }
+
+                    // hitBox 숨기기
+                    if (child.name === 'hitBox') {
+                        child.visible = false;
+                        console.log('hitBox hidden');
+                    }
                 });
 
                 // 모델 크기 조정 (필요시)
