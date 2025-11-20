@@ -96,7 +96,7 @@ export class Enemy extends Character {
 
                 // 메쉬를 모델로 교체
                 this.mesh = this.model;
-                this.mesh.position.y = this.groundY + 0.5;
+                this.mesh.position.y = this.groundY;
                 this.scene.add(this.mesh);
 
                 // 애니메이션 설정
@@ -161,7 +161,7 @@ export class Enemy extends Character {
                 break;
         }
         // 🔥 이동 후에도 항상 지면 높이로 고정
-        this.mesh.position.y = this.groundY + this.radius;
+        this.mesh.position.y = this.groundY;
 
         this._lookAtPlayer(player);
         this.updateCollider();
