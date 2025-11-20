@@ -50,6 +50,7 @@ export class Enemy extends Character {
         const geom = new THREE.SphereGeometry(radius, 16, 16);
         const mat = new THREE.MeshStandardMaterial({ color });
         this.mesh = new THREE.Mesh(geom, mat);
+        this.mesh.visible = false; // 모델 로드 전까지는 숨김
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = true;
 

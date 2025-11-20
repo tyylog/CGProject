@@ -289,13 +289,13 @@ export class Game {
     }
 
     handlePlayerDeath() {
-        console.log('Player died!');
         this.isGameOver = true;
 
         // UI에 게임오버 표시
         if (this.uiSystem) {
             this.uiSystem.showGameOver();
         }
+
     }
 
     _clampPlayerToGround() {
