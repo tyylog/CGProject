@@ -74,7 +74,10 @@ export class Enemy extends Character {
             (gltf) => {
                 this.model = gltf.scene;
 
-                // 기존 구체 제거
+                // 기존 구체의 transform을 보존한 뒤 제거
+                const prevPos = this.mesh.position.clone();
+                const prevRot = this.mesh.rotation.clone();
+                const prevScale = this.mesh.scale.clone();
                 this.scene.remove(this.mesh);
 
                 // 모델 설정
@@ -91,12 +94,16 @@ export class Enemy extends Character {
                     }
                 });
 
-                // 모델 크기 조정 (필요시)
-                this.model.scale.set(1, 1, 1);
+                // 모델에 원래 위치/회전/스케일 적용 (필요시 추가 조정)
+                this.model.position.copy(prevPos);
+                this.model.rotation.copy(prevRot);
+                // 보통 GLTF에 이미 스케일이 있으므로 곱셈으로 유지
+                this.model.scale.multiply(prevScale);
+                // y 고정: 원래 구체는 groundY + radius로 세팅되어 있으므로 동일하게 유지
+                this.model.position.y = this.groundY + this.radius;
 
                 // 메쉬를 모델로 교체
                 this.mesh = this.model;
-                this.mesh.position.y = this.groundY;
                 this.scene.add(this.mesh);
 
                 // 애니메이션 설정
