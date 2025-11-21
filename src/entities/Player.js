@@ -24,6 +24,10 @@ export class Player extends Character {
         this.model = null;
         this.isModelLoaded = false;
 
+        // 공격 히트박스 참조
+        this.attackHitbox = null;
+        this.attackHitboxCollider = new THREE.Box3();
+
         this.speed = 5;        // m/s
         this.runMultiplier = 2;
         this.jumpSpeed = 5;
@@ -35,7 +39,8 @@ export class Player extends Character {
         // 캐릭터 회전 관련
         this.targetRotation = 0;  // 목표 회전각
         this.rotationSpeed = 10;  // 회전 속도 (높을수록 빠름)
-        this.isAttacking = false;  // 공격 중 플래그
+        this.isAttacking = false;  // 공격 중 플래그 (이동 제한용)
+        this.isAttackActive = false;  // 실제 공격 판정 활성화 플래그
         this.isDying = false;  // 죽음 애니메이션 재생 중 플래그
 
         // 모델 로드
@@ -59,10 +64,11 @@ export class Player extends Character {
                         child.receiveShadow = true;
                     }
 
-                    // attackhitBox 숨기기
+                    // attackHitbox 찾아서 참조 저장 및 숨기기
                     if (child.name === 'attackHitbox') {
+                        this.attackHitbox = child;
                         child.visible = false;
-                        console.log('attackhitBox hidden');
+                        console.log('attackHitbox found and hidden');
                     }
                 });
 
@@ -107,7 +113,8 @@ export class Player extends Character {
                     // 공격 애니메이션이 끝나면 Idle로 전환
                     if (clipName === 'MouseLeft' || clipName === 'MouseRight' || clipName === 'Jump') {
                         this.playAnimation('Idle', true);
-                        this.isAttacking = false;  // 공격 종료
+                        this.isAttacking = false;  // 공격 종료 (이동 제한 해제)
+                        this.isAttackActive = false;  // 공격 판정 비활성화
                     }
 
                     // Death 애니메이션이 끝나면 게임오버 처리
@@ -255,6 +262,7 @@ export class Player extends Character {
         this._updateAnimation(input, isMoving);
 
         this.updateCollider();
+        this.updateAttackHitboxCollider();
     }
 
     _updateRotation(delta, input, isMoving) {
@@ -318,19 +326,24 @@ export class Player extends Character {
         // 우선순위: 공격 > 점프 > 이동 > Idle
 
         // 마우스 클릭 (공격)
-        if (input.mouseButtons.left) {
+        if (input.mouseButtons.left && !this.isAttacking) {
+            // 이미 공격 중이 아닐 때만 새로운 공격 시작
+            this.isAttacking = true;  // 이동 제한
+            this.isAttackActive = true;  // 공격 판정 활성화
             this.playAnimation('MouseLeft', false);
             return;
         }
-        if (input.mouseButtons.right) {
-            this.isAttacking = true;  // 공격 시작
+        if (input.mouseButtons.right && !this.isAttacking) {
+            // 이미 공격 중이 아닐 때만 새로운 공격 시작
+            this.isAttacking = true;  // 이동 제한
+            this.isAttackActive = true;  // 공격 판정 활성화
             this.playAnimation('MouseRight', false);
             return;
         }
 
-        // 마우스 오른쪽 버튼을 떼면 공격 취소
-        if (this.isAttacking && !input.mouseButtons.right) {
-            this.isAttacking = false;
+        // 공격 중이면 다른 애니메이션으로 전환하지 않음
+        if (this.isAttacking) {
+            return;
         }
 
         // 점프
@@ -347,5 +360,11 @@ export class Player extends Character {
 
         // Idle
         this.playAnimation('Idle', true);
+    }
+
+    updateAttackHitboxCollider() {
+        if (this.attackHitbox) {
+            this.attackHitboxCollider.setFromObject(this.attackHitbox);
+        }
     }
 }
