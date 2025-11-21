@@ -46,6 +46,10 @@ export class Enemy extends Character {
         this.model = null;
         this.isModelLoaded = false;
 
+        // 히트박스 참조
+        this.hitBox = null;
+        this.hitBoxCollider = new THREE.Box3();
+
         // 임시 메쉬 (로딩 중)
         const geom = new THREE.SphereGeometry(radius, 16, 16);
         const mat = new THREE.MeshStandardMaterial({ color });
@@ -88,10 +92,11 @@ export class Enemy extends Character {
                         child.receiveShadow = true;
                     }
 
-                    // hitBox 숨기기
+                    // hitBox 찾아서 참조 저장 및 숨기기
                     if (child.name === 'hitBox') {
+                        this.hitBox = child;
                         child.visible = false;
-                        console.log('hitBox hidden');
+                        console.log('hitBox found and hidden');
                     }
                 });
 
@@ -123,6 +128,7 @@ export class Enemy extends Character {
                     this.currentAction.play();
                 }
 
+
                 this.isModelLoaded = true;
                 console.log('Enemy model loaded successfully');
             },
@@ -136,7 +142,7 @@ export class Enemy extends Character {
     }
 
     update(delta, player) {
-        // 애니메이션 믹서 업데이트
+        // 애니메이션 믹서는 항상 업데이트
         if (this.mixer) {
             this.mixer.update(delta);
         }
@@ -165,7 +171,7 @@ export class Enemy extends Character {
             case 'attack':
                 if (distance > this.attackRange) {
                     this.state = 'chase';
-                } 
+                }
                 break;
         }
         // 🔥 이동 후에도 항상 지면 높이로 고정
@@ -173,6 +179,7 @@ export class Enemy extends Character {
 
         this._lookAtPlayer(player);
         this.updateCollider();
+        this.updateHitBoxCollider();
     }
 
     _moveTowardsPlayer(delta, dir) {
@@ -190,13 +197,38 @@ export class Enemy extends Character {
         this.mesh.rotation.y = angle;
     }
 
-    // 🔹 죽을 때 시각적인 처리 + 상위 콜백 호출
-    die() {
-        this.state = 'dead';
-        if (this.mesh) {
-            this.mesh.visible = false;
+    playAnimation(name, loop = true) {
+        if (!this.isModelLoaded || !this.actions[name]) {
+            return;
         }
-        // Game으로 이벤트 전달
-        super.die();
+
+        const newAction = this.actions[name];
+
+        if (this.currentAction === newAction) {
+            return;
+        }
+
+        // 이전 애니메이션 페이드아웃
+        if (this.currentAction) {
+            this.currentAction.fadeOut(0.2);
+        }
+
+        // 새 애니메이션 페이드인
+        newAction.reset();
+        newAction.fadeIn(0.2);
+        newAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce);
+
+        if (!loop) {
+            newAction.clampWhenFinished = true;
+        }
+
+        newAction.play();
+        this.currentAction = newAction;
+    }
+
+    updateHitBoxCollider() {
+        if (this.hitBox) {
+            this.hitBoxCollider.setFromObject(this.hitBox);
+        }
     }
 }

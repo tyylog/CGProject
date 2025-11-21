@@ -199,8 +199,7 @@ export class Game {
             this.combatSystem.update(
                 delta,
                 this.player,
-                this.enemySpawner.enemies,
-                this.input
+                this.enemySpawner.enemies
             );
         }
 

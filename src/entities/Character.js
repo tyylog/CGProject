@@ -22,16 +22,16 @@ export class Character {
 
     takeDamage(amount) {
         this.hp = Math.max(0, this.hp - amount);
-        // TODO: HP 0이면 죽음 처리 (애니메이션, 제거 등)
+        // HP 0이면 죽음 처리
         if (this.hp <= 0) {
             this.die();
         }
     }
 
     die() {
-        // 실제 "죽음 이벤트" 발생 지점
+        // 즉시 제거
         if (typeof this.onDeathCallback === 'function') {
-            this.onDeathCallback(this); // 자신(캐릭터)을 넘겨줌
+            this.onDeathCallback(this);
         }
     }
 
