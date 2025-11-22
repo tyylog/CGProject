@@ -8,10 +8,12 @@ export class EnemySpawner {
      * @param {THREE.Mesh} ground  - y 위치 기준용 (없으면 null)
      * @param {Object} options
      * @param {Function} onEnemyDeath - Game에서 넘겨주는 die callback
+     * @param {SoundSystem} soundSystem - 사운드 시스템
      */
-    constructor(scene, ground, options = {}, onEnemyDeath = null) {
+    constructor(scene, ground, options = {}, onEnemyDeath = null, soundSystem = null) {
         this.scene = scene;
         this.ground = ground;
+        this.soundSystem = soundSystem;
 
         const {
             maxEnemies = 10,          // 동시에 존재할 최대 적 수
@@ -108,7 +110,7 @@ export class EnemySpawner {
             return null;
         }
 
-        // 👇 Enemy 생성 시 onDeathCallback 전달
+        // 👇 Enemy 생성 시 onDeathCallback과 soundSystem 전달
         const enemy = new Enemy(
             this.scene,
             this.ground,
@@ -118,7 +120,8 @@ export class EnemySpawner {
                 if (typeof this.onEnemyDeath === 'function') {
                     this.onEnemyDeath(deadEnemy);  // 결국 Game.handleEnemyDeath로 감
                 }
-            }
+            },
+            this.soundSystem
         );
 
         enemy.mesh.position.x = x;

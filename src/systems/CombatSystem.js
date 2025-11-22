@@ -74,18 +74,6 @@ export class CombatSystem {
                 // 타격 판정
                 enemy.takeDamage(this.playerAttackDamage);
                 this._lastHitTime.set(enemy, now);
-                console.log('Hit detected! Enemy HP:', enemy.hp);
-
-                // 넉백 효과: 플레이어 방향 반대로 1m 밀어내기
-                const knockbackDir = new THREE.Vector3().subVectors(
-                    enemy.mesh.position,
-                    player.mesh.position
-                );
-                knockbackDir.y = 0; // y축 무시 (수평 방향만)
-                knockbackDir.normalize();
-                knockbackDir.multiplyScalar(1.0); // 1m 거리
-
-                enemy.mesh.position.add(knockbackDir);
             }
         });
     }
@@ -96,6 +84,15 @@ export class CombatSystem {
         enemies.forEach(enemy => {
             if (!enemy.mesh || (enemy.isDead && enemy.isDead())) return;
 
+            // 새로운 공격이 시작되면 쿨타임 리셋
+            if (enemy.attackStarted) {
+                this._enemyAttackTimers.delete(enemy);
+                enemy.attackStarted = false;
+            }
+
+            // 공격 판정이 활성화되지 않았으면 스킵
+            if (!enemy.isAttackActive) return;
+
             const enemyPos = enemy.mesh.position;
 
             const toPlayer = this._tmpVec.subVectors(playerPos, enemyPos);
@@ -104,7 +101,7 @@ export class CombatSystem {
             const range = enemy.attackRange || 2.0;
             if (dist > range) return;
 
-            // enemy별 쿨타임 꺼내기
+            // enemy별 쿨타임 꺼내기 (같은 공격으로 여러 번 맞는 것 방지)
             let timer = this._enemyAttackTimers.get(enemy) || 0;
             if (timer > 0) {
                 timer -= delta;
@@ -112,12 +109,12 @@ export class CombatSystem {
                 return;
             }
 
-            // 공격 발동
+            // 공격 발동 (애니메이션 50% 지점)
             const dmg = enemy.attackDamage;
             player.takeDamage(dmg);
 
-            // 쿨타임 리셋
-            this._enemyAttackTimers.set(enemy, this.enemyAttackCooldown);
+            // 쿨타임 리셋 (0.5초 - 같은 공격 애니메이션 내에서 중복 타격 방지)
+            this._enemyAttackTimers.set(enemy, 0.5);
         });
     }
 
