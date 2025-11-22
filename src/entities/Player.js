@@ -4,9 +4,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Character } from './Character.js';
 
 export class Player extends Character {
-    constructor(scene, ground) {
+    constructor(scene, ground, soundSystem = null, onBGMStopRequest = null) {
         super(scene);
         this.ground = ground;
+        this.soundSystem = soundSystem;
+        this.onBGMStopRequest = onBGMStopRequest;
 
         this.modelBaseOffset = 0.5;
 
@@ -163,6 +165,13 @@ export class Player extends Character {
             newAction.clampWhenFinished = true;
         }
 
+        // 공격 애니메이션은 1.5배 빠르게 재생
+        if (name === 'MouseLeft' || name === 'MouseRight') {
+            newAction.setEffectiveTimeScale(1.3);
+        } else {
+            newAction.setEffectiveTimeScale(1.0);
+        }
+
         newAction.play();
         this.currentAction = newAction;
     }
@@ -191,7 +200,19 @@ export class Player extends Character {
         // 죽음 애니메이션 재생 (게임오버는 애니메이션 종료 후 호출됨)
         if (!this.isDying && this.isModelLoaded) {
             this.isDying = true;
+            this.isAttacking = false;  // 공격 중이어도 강제 해제
+            this.isAttackActive = false;  // 공격 판정 비활성화
+
+            // 배경음악 즉시 중지
+            if (typeof this.onBGMStopRequest === 'function') {
+                this.onBGMStopRequest();
+            }
+
             this.playAnimation('Death', false);
+            // 죽음 사운드 재생
+            if (this.soundSystem) {
+                this.soundSystem.playSFX('playerDeath');
+            }
             console.log('Player death animation started');
         }
         // onDeathCallback은 Death 애니메이션이 끝난 후 호출됨 (finished 이벤트에서)
@@ -331,6 +352,10 @@ export class Player extends Character {
             this.isAttacking = true;  // 이동 제한
             this.isAttackActive = true;  // 공격 판정 활성화
             this.playAnimation('MouseLeft', false);
+            // 공격 사운드 재생
+            if (this.soundSystem) {
+                this.soundSystem.playSFX('playerAttackLeft');
+            }
             return;
         }
         if (input.mouseButtons.right && !this.isAttacking) {
@@ -338,6 +363,10 @@ export class Player extends Character {
             this.isAttacking = true;  // 이동 제한
             this.isAttackActive = true;  // 공격 판정 활성화
             this.playAnimation('MouseRight', false);
+            // 공격 사운드 재생
+            if (this.soundSystem) {
+                this.soundSystem.playSFX('playerAttackRight');
+            }
             return;
         }
 

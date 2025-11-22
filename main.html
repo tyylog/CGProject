@@ -7,6 +7,88 @@
             margin: 0;
             overflow: hidden;
         }
+
+        /* 시작 화면 */
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+        }
+
+        #start-screen.hidden {
+            display: none;
+        }
+
+        /* 배경 이미지 */
+        #start-screen img {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 하단 텍스트 */
+        #start-screen .start-text {
+            position: absolute;
+            bottom: 80px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+            animation: blink 2s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        /* 깜빡임 애니메이션 */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Begin 화면 */
+        #begin-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+        }
+
+        #begin-screen.active {
+            display: flex;
+        }
+
+        #begin-screen img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+        }
+
+        /* 페이드인 애니메이션 */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        /* 페이드아웃 애니메이션 */
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
     <!-- CDN (Content Delivery Network)을 사용, importmap 설정 -->
     <script type="importmap">
@@ -20,5 +102,15 @@
     <script type="module" src="./src/main.js"></script>
 </head>
 <body>
+    <!-- 시작 화면 -->
+    <div id="start-screen">
+        <img src="./assets/image/gamestart.png" alt="Game Start">
+        <div class="start-text">Click or press Enter to start</div>
+    </div>
+
+    <!-- Begin 화면 -->
+    <div id="begin-screen">
+        <img src="./assets/image/begin.png" alt="Begin">
+    </div>
 </body>
 </html>
