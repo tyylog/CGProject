@@ -163,7 +163,7 @@ export class Game {
 
 
         // UI System
-        this.uiSystem = new UISystem();
+        this.uiSystem = new UISystem(this.DEBUG_MODE);
 
         // Player 초기화 (SoundSystem 로드 후)
         this.player = new Player(
@@ -183,7 +183,9 @@ export class Game {
         }
 
         // 시작 화면 처리
-        this._setupStartScreen();
+        if (!this.DEBUG_MODE) {
+            this._setupStartScreen();
+        }
     }
 
     _setupStartScreen() {
@@ -315,6 +317,28 @@ export class Game {
             this.decorationSystem.update(delta);
         }
 
+        // debug 정보 구성
+        const bounds = this.environmentSystem.getGroundBounds();
+        let debugInfo = null;
+        if (this.DEBUG_MODE && this.player && this.player.mesh) {
+            const pos = this.player.mesh.position;
+            const enemyCount = this.enemySpawner
+                ? this.enemySpawner.enemies.length
+                : 0;
+
+            // 간단한 FPS 계산 (delta 기반)
+            const fps = delta > 0 ? 1 / delta : 0;
+
+            debugInfo = {
+                fps,
+                playerPos: { x: pos.x, y: pos.y, z: pos.z },
+                playerYaw: this.input.yaw,
+                enemyCount,
+                modeName: this.environmentSystem?.currentMode,
+                bounds,
+            };
+        }
+
         // ui 갱신
         if (this.uiSystem && this.player) {
             this.uiSystem.update({
@@ -323,7 +347,8 @@ export class Game {
                 killCount: this.killCount ?? 0,
                 level: this.player.level ?? 1,
                 elapsedTime: this.elapsedTime,
-        });
+                debugInfo,  // 디버그 정보 전달
+            });
         }
 
         // 카메라 위치 갱신
