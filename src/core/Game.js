@@ -12,7 +12,10 @@ import { SoundSystem } from '../systems/SoundSystem.js';
 
 
 export class Game {
-    constructor() {
+    constructor(options = {}) {
+        // debug 모드 옵션 처리
+        this.DEBUG_MODE = options.debug || false;
+
         this.scene = null;
         this.camera = null;
         this.renderer = null;
@@ -32,7 +35,9 @@ export class Game {
         this.elapsedTime = 0;
         this.killCount = 0;
         this.isGameOver = false;
-        this.isGameStarted = false;  // 게임 시작 여부
+
+        // 🔥 디버그 모드면 바로 시작된 상태로
+        this.isGameStarted = this.DEBUG_MODE ? true : false;
 
         this._initThree();
         this._initWorld();
@@ -282,13 +287,13 @@ export class Game {
         this._clampPlayerToGround();
 
         // 적 스폰/AI 업데이트
-        if (this.enemySpawner) {
-        this.enemySpawner.update(delta, this.player);
+        if (this.enemySpawner && !this.DEBUG_MODE) {
+            this.enemySpawner.update(delta, this.player);
 
-        // 각 enemy의 AI update
-        this.enemySpawner.enemies.forEach(enemy => {
-            enemy.update(delta, this.player);
-        });
+            // 각 enemy의 AI update
+            this.enemySpawner.enemies.forEach(enemy => {
+                enemy.update(delta, this.player);
+            });
         }
 
         // 전투 판정 (양쪽 공격/피격)
