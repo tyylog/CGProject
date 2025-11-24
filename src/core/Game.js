@@ -43,7 +43,7 @@ export class Game {
         this._initWorld();
         this._initSystems();
 
-        this.input = new InputController(this.renderer.domElement);
+        this.input = new InputController(this.renderer.domElement, this.DEBUG_MODE);
 
         this._bindEvents();
 
@@ -60,7 +60,7 @@ export class Game {
             75,
             window.innerWidth / window.innerHeight,
             0.1,
-            100
+            200
         );
         this.camera.position.set(-3, 8, 2);
         this.scene.add(this.camera);
@@ -433,7 +433,7 @@ export class Game {
         const pos = this.player.mesh.position;
 
         // 플레이어 크기에 맞게 margin 설정 (반지름 느낌)
-        const margin = 0.5;  // 플레이어가 가로 1이라면 0.5 정도
+        const margin = 1.5;  // 플레이어가 가로 1이라면 0.5 정도
 
         const minX = bounds.minX + margin;
         const maxX = bounds.maxX - margin;

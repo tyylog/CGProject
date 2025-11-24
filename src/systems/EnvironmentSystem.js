@@ -209,8 +209,8 @@ export class EnvironmentSystem {
         const width = maxX - minX;
         const depth = maxZ - minZ;
 
-        const wallPath   = 'assets/models/wall.glb';         // 경로는 프로젝트 구조에 맞게 수정
-        const cornerPath = 'assets/models/wall_corner.glb';
+        const wallPath   = 'assets/models/wall_origin.glb';         // 경로는 프로젝트 구조에 맞게 수정
+        const cornerPath = 'assets/models/wall_corner_origin.glb';
 
         const loadGLB = (path) =>
             new Promise((resolve, reject) => {
@@ -224,8 +224,8 @@ export class EnvironmentSystem {
 
         Promise.all([loadGLB(wallPath), loadGLB(cornerPath)])
             .then(([wallBase, cornerBase]) => {
+                const wallScale = 10;
 
-                const wallScale = 5; 
                 wallBase.scale.set(wallScale, wallScale, wallScale);
                 cornerBase.scale.set(wallScale, wallScale, wallScale);
 
@@ -246,23 +246,22 @@ export class EnvironmentSystem {
                 const size   = new THREE.Vector3();
                 tmpBox.getSize(size);
 
-                // 모델에 따라 X 또는 Z가 더 클 수 있으니, 더 큰 쪽을 segment 길이로 사용
-                const segLen = Math.max(size.x, size.z);
-
                 // 한 변을 몇 개 segment로 나눌지 (원하는 밀도로 조정)
-                const targetSegCountX = 16;
-                const targetSegCountZ = 16;
+                const targetSegCountX = 10;
+                const targetSegCountZ = 10;
 
                 const stepX = width / targetSegCountX;
                 const stepZ = depth / targetSegCountZ;
 
-                const y = 0;  // 지면 높이(필요하면 this.ground.position.y 사용)
+                // Y 위치는 지면 바로 위, prevent z-fighting 위해 약간 올리기
+                const y = 0.01;  // 지면 높이(필요하면 this.ground.position.y 사용)
 
                 this.wallSegments = [];
                 this.wallCorners  = [];
 
                 // 🔹 남/북 방향 (x만 변하고 z 고정)
-                for (let i = 0; i < targetSegCountX; i++) {
+                // index : 1 ~ N-1 (코너 제외)
+                for (let i = 1; i < targetSegCountX - 1; i++) {
                     const px = minX + (i + 0.5) * stepX;
 
                     // 남쪽 (minZ)
@@ -281,7 +280,8 @@ export class EnvironmentSystem {
                 }
 
                 // 🔹 서/동 방향 (z만 변하고 x 고정)
-                for (let i = 0; i < targetSegCountZ; i++) {
+                // index : 1 ~ N-1 (코너 제외)
+                for (let i = 1; i < targetSegCountZ - 1; i++) {
                     const pz = minZ + (i + 0.5) * stepZ;
 
                     // 서쪽 (minX)
@@ -301,11 +301,13 @@ export class EnvironmentSystem {
 
                 // 🔥 코너 4개
                 const corners = [
-                    { x: minX, z: minZ, rotY: 0 },               // 남서
-                    { x: maxX, z: minZ, rotY: 0 },     // 남동
-                    { x: maxX, z: maxZ, rotY: Math.PI/2 },         // 북동
-                    { x: minX, z: maxZ, rotY: 0 },    // 북서
+                    { x: minX, z: minZ, rotY: 0 },            // 남서
+                    { x: maxX, z: minZ, rotY: -Math.PI/2 },   // 남동
+                    { x: maxX, z: maxZ, rotY: Math.PI },      // 북동
+                    { x: minX, z: maxZ, rotY: Math.PI/2 },    // 북서
                 ];
+
+                console.log('Corners:', corners);
 
                 for (const c of corners) {
                     const corner = cornerBase.clone(true);
