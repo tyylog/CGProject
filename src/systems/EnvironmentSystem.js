@@ -224,7 +224,7 @@ export class EnvironmentSystem {
 
         Promise.all([loadGLB(wallPath), loadGLB(cornerPath)])
             .then(([wallBase, cornerBase]) => {
-                const wallScale = 10;
+                const wallScale = 5;
 
                 wallBase.scale.set(wallScale, wallScale, wallScale);
                 cornerBase.scale.set(wallScale, wallScale, wallScale);
@@ -247,8 +247,8 @@ export class EnvironmentSystem {
                 tmpBox.getSize(size);
 
                 // 한 변을 몇 개 segment로 나눌지 (원하는 밀도로 조정)
-                const targetSegCountX = 10;
-                const targetSegCountZ = 10;
+                const targetSegCountX = 20;
+                const targetSegCountZ = 20;
 
                 const stepX = width / targetSegCountX;
                 const stepZ = depth / targetSegCountZ;
