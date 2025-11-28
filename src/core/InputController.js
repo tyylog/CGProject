@@ -1,7 +1,8 @@
 // core/InputController.js
 export class InputController {
-    constructor(domElement) {
+    constructor(domElement, DEBUG_MODE = false) {
         this.domElement = domElement;
+        this.debugMode = DEBUG_MODE;
 
         this.keys = {
             w: false,
@@ -21,6 +22,8 @@ export class InputController {
         this.yaw = 0;
         this.pitch = 0;
         this.mouseSensitivity = 0.002;
+
+        this.cameraLocked = true;
 
         this._bindEvents();
     }
@@ -65,6 +68,15 @@ export class InputController {
         this.domElement.addEventListener('contextmenu', (e) => {
             e.preventDefault();
         });
+
+        // 디버그모드면 카메라 제한 해제 가능
+        if (this.debugMode) {
+            window.addEventListener('keydown', (e) => {
+                if (e.key.toLowerCase() === 'c') {
+                    this.cameraLocked = !this.cameraLocked;
+                }
+            });
+        }
     }
 
     update() {
@@ -73,7 +85,10 @@ export class InputController {
         this.pitch -= this.mouseDelta.y * this.mouseSensitivity;
 
         // 상하 회전 제한 (-90도 ~ 90도)
-        this.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 6, this.pitch));
+        // 디버그모드가 아닌 일반적인 경우 cameraLocked는 항상 true
+        if (this.cameraLocked) {
+            this.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 6, this.pitch));
+        }
 
         // 한 프레임마다 delta는 초기화해줘야 다음 프레임에서 “변화량”만 반영됨
         this.mouseDelta.x = 0;

@@ -1,6 +1,6 @@
 // src/systems/UISystem.js
 export class UISystem {
-    constructor() {
+    constructor(DEBUG_MODE = false) {
         // --- 루트 컨테이너 ---
         this.root = document.createElement('div');
         this.root.style.position = 'fixed';
@@ -66,6 +66,12 @@ export class UISystem {
         this.gameOverText.textContent = 'GAME OVER';
 
         document.body.appendChild(this.gameOverText);
+
+        // 디버그 모드 패널
+        this.debugMode = DEBUG_MODE;
+        if (this.debugMode) {
+            this._setupDebugPanel();
+        }
     }
 
     /**
@@ -75,11 +81,12 @@ export class UISystem {
      * @param {number} data.killCount
      * @param {number} data.level
      * @param {number} data.elapsedTime  (초 단위)
+     * @param {object} debugInfo  디버그 정보 객체
      */
     update(data) {
         if (!data) return;
 
-        const { hp = 0, maxHp = 100, killCount = 0, level = 1, elapsedTime = 0 } = data;
+        const { hp = 0, maxHp = 100, killCount = 0, level = 1, elapsedTime = 0, debugInfo, } = data;
 
         // HP 바 비율 반영
         const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
@@ -96,11 +103,54 @@ export class UISystem {
         const min = Math.floor(t / 60);
         const sec = (t % 60).toString().padStart(2, '0');
         this.timeText.textContent = `Time: ${min}:${sec}`;
+
+        // 🔹 디버그 패널 갱신
+        if (this.debugMode && this.debugEl && debugInfo) {
+            const p = debugInfo.playerPos;
+            const yawDeg = (debugInfo.playerYaw * 180 / Math.PI).toFixed(1);
+            const b = debugInfo.bounds;
+
+            let text =
+                `DEBUG MODE\n` +
+                `FPS      : ${debugInfo.fps.toFixed(1)}\n` +
+                `Player   : (${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)})\n` +
+                `Yaw      : ${yawDeg}°\n` +
+                `Enemies  : ${debugInfo.enemyCount}\n` +
+                `Mode     : ${debugInfo.modeName || '-'}\n` +
+                `Time     : ${elapsedTime.toFixed(2)}s`;
+
+            if (b) {
+                text += `\nBounds   : X(${b.minX.toFixed(1)}, ${b.maxX.toFixed(1)}), `
+                    +  `Z(${b.minZ.toFixed(1)}, ${b.maxZ.toFixed(1)})`;
+            }
+
+            this.debugEl.textContent = text;   // 🔥 if 블록 안에서만 실행되어야 한다!
+        }
+
     }
 
     showGameOver() {
         if (this.gameOverText) {
             this.gameOverText.style.display = 'block';
         }
+    }
+
+    _setupDebugPanel() {
+        this.debugEl = document.createElement('div');
+        this.debugEl.id = 'debug-panel';
+        Object.assign(this.debugEl.style, {
+            position: 'fixed',
+            right: '10px',
+            bottom: '10px',
+            padding: '8px 12px',
+            background: 'rgba(0,0,0,0.6)',
+            color: '#0f0',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            whiteSpace: 'pre',
+            zIndex: 9999,
+            pointerEvents: 'none',
+        });
+        document.body.appendChild(this.debugEl);
     }
 }

@@ -16,6 +16,7 @@ export class Player extends Character {
         const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
         const playerMaterial = new THREE.MeshLambertMaterial({ color: 0x0099ff });
         this.mesh = new THREE.Mesh(playerGeometry, playerMaterial);
+        this.mesh.visible = false; // 로딩 중에는 안 보이게
         this.mesh.castShadow = true;
         this.scene.add(this.mesh);
 

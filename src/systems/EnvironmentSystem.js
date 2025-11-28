@@ -25,6 +25,10 @@ export class EnvironmentSystem {
         // 지면 바운드
         this.groundBounds = null;
 
+        // 성벽 객체들 보관
+        this.wallSegments = [];
+        this.wallCorners = [];
+
         // 배경색 보간
         this.currentColor = new THREE.Color(0x000000);
         this.targetColor = new THREE.Color(0x000000);
@@ -38,11 +42,11 @@ export class EnvironmentSystem {
             },
             wasteland: {
                 bg: new THREE.Color(0xffb266),
-                modelPath: 'assets/textures/ground_dirt.jpg',
+                modelPath: 'assets/textures/ground_grass.glb',
             },
             hell: {
                 bg: new THREE.Color(0x200010),
-                modelPath: 'assets/textures/ground_lava.glb',
+                modelPath: 'assets/textures/ground_grass.glb',
             },
         };
 
@@ -152,6 +156,9 @@ export class EnvironmentSystem {
                     minZ: worldBox.min.z,
                     maxZ: worldBox.max.z,
                 };
+
+                // 🔥 ground 바운드에 맞춰 성벽 + 코너 재구성
+                this._rebuildWalls();
             }
         );
 
@@ -172,5 +179,151 @@ export class EnvironmentSystem {
     getGroundBounds() {
         return this.groundBounds;
     }
+
+    // ============================
+    // Wall System
+    // ============================
+
+    _clearWalls() {
+        if (this.wallSegments) {
+            this.wallSegments.forEach(w => {
+                if (w.parent) this.scene.remove(w);
+            });
+        }
+        if (this.wallCorners) {
+            this.wallCorners.forEach(c => {
+                if (c.parent) this.scene.remove(c);
+            });
+        }
+        this.wallSegments = [];
+        this.wallCorners  = [];
+    }
+
+    _rebuildWalls() {
+        // 기존 것부터 제거
+        this._clearWalls();
+
+        if (!this.groundBounds) return;
+
+        const { minX, maxX, minZ, maxZ } = this.groundBounds;
+        const width = maxX - minX;
+        const depth = maxZ - minZ;
+
+        const wallPath   = 'assets/models/wall_origin.glb';         // 경로는 프로젝트 구조에 맞게 수정
+        const cornerPath = 'assets/models/wall_corner_origin.glb';
+
+        const loadGLB = (path) =>
+            new Promise((resolve, reject) => {
+                this.gltfLoader.load(
+                    path,
+                    (gltf) => resolve(gltf.scene),
+                    undefined,
+                    reject
+                );
+            });
+
+        Promise.all([loadGLB(wallPath), loadGLB(cornerPath)])
+            .then(([wallBase, cornerBase]) => {
+                const wallScale = 5;
+
+                wallBase.scale.set(wallScale, wallScale, wallScale);
+                cornerBase.scale.set(wallScale, wallScale, wallScale);
+
+                // 공통 그림자 옵션
+                const enableShadows = (obj) => {
+                    obj.traverse((c) => {
+                        if (c.isMesh) {
+                            c.castShadow = true;
+                            c.receiveShadow = true;
+                        }
+                    });
+                };
+                enableShadows(wallBase);
+                enableShadows(cornerBase);
+
+                // 🔥 wall 한 조각의 "긴 축" 길이 측정
+                const tmpBox = new THREE.Box3().setFromObject(wallBase);
+                const size   = new THREE.Vector3();
+                tmpBox.getSize(size);
+
+                // 한 변을 몇 개 segment로 나눌지 (원하는 밀도로 조정)
+                const targetSegCountX = 20;
+                const targetSegCountZ = 20;
+
+                const stepX = width / targetSegCountX;
+                const stepZ = depth / targetSegCountZ;
+
+                // Y 위치는 지면 바로 위, prevent z-fighting 위해 약간 올리기
+                const y = 0.01;  // 지면 높이(필요하면 this.ground.position.y 사용)
+
+                this.wallSegments = [];
+                this.wallCorners  = [];
+
+                // 🔹 남/북 방향 (x만 변하고 z 고정)
+                // index : 1 ~ N-1 (코너 제외)
+                for (let i = 1; i < targetSegCountX - 1; i++) {
+                    const px = minX + (i + 0.5) * stepX;
+
+                    // 남쪽 (minZ)
+                    const south = wallBase.clone(true);
+                    south.position.set(px, y, minZ);
+                    south.rotation.y = 0; // ✅ wall.glb가 X+ 방향으로 놓였다고 가정
+                    this.scene.add(south);
+                    this.wallSegments.push(south);
+
+                    // 북쪽 (maxZ)
+                    const north = wallBase.clone(true);
+                    north.position.set(px, y, maxZ);
+                    north.rotation.y = Math.PI; // 반대 방향
+                    this.scene.add(north);
+                    this.wallSegments.push(north);
+                }
+
+                // 🔹 서/동 방향 (z만 변하고 x 고정)
+                // index : 1 ~ N-1 (코너 제외)
+                for (let i = 1; i < targetSegCountZ - 1; i++) {
+                    const pz = minZ + (i + 0.5) * stepZ;
+
+                    // 서쪽 (minX)
+                    const west = wallBase.clone(true);
+                    west.position.set(minX, y, pz);
+                    west.rotation.y = -Math.PI / 2;
+                    this.scene.add(west);
+                    this.wallSegments.push(west);
+
+                    // 동쪽 (maxX)
+                    const east = wallBase.clone(true);
+                    east.position.set(maxX, y, pz);
+                    east.rotation.y = Math.PI / 2;
+                    this.scene.add(east);
+                    this.wallSegments.push(east);
+                }
+
+                // 🔥 코너 4개
+                const corners = [
+                    { x: minX, z: minZ, rotY: 0 },            // 남서
+                    { x: maxX, z: minZ, rotY: -Math.PI/2 },   // 남동
+                    { x: maxX, z: maxZ, rotY: Math.PI },      // 북동
+                    { x: minX, z: maxZ, rotY: Math.PI/2 },    // 북서
+                ];
+
+                console.log('Corners:', corners);
+
+                for (const c of corners) {
+                    const corner = cornerBase.clone(true);
+                    corner.position.set(c.x, y, c.z);
+                    corner.rotation.y = c.rotY;
+                    this.scene.add(corner);
+                    this.wallCorners.push(corner);
+                }
+
+                console.log('Walls + corners created:', this.wallSegments.length, this.wallCorners.length);
+            })
+            .catch((err) => {
+                console.error('Failed to build walls:', err);
+            });
+    }
+
+
 
 }

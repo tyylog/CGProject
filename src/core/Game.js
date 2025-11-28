@@ -12,7 +12,10 @@ import { SoundSystem } from '../systems/SoundSystem.js';
 
 
 export class Game {
-    constructor() {
+    constructor(options = {}) {
+        // debug 모드 옵션 처리
+        this.DEBUG_MODE = options.debug || false;
+
         this.scene = null;
         this.camera = null;
         this.renderer = null;
@@ -32,13 +35,15 @@ export class Game {
         this.elapsedTime = 0;
         this.killCount = 0;
         this.isGameOver = false;
-        this.isGameStarted = false;  // 게임 시작 여부
+
+        // 🔥 디버그 모드면 바로 시작된 상태로
+        this.isGameStarted = this.DEBUG_MODE ? true : false;
 
         this._initThree();
         this._initWorld();
         this._initSystems();
 
-        this.input = new InputController(this.renderer.domElement);
+        this.input = new InputController(this.renderer.domElement, this.DEBUG_MODE);
 
         this._bindEvents();
 
@@ -55,7 +60,7 @@ export class Game {
             75,
             window.innerWidth / window.innerHeight,
             0.1,
-            100
+            200
         );
         this.camera.position.set(-3, 8, 2);
         this.scene.add(this.camera);
@@ -158,7 +163,7 @@ export class Game {
 
 
         // UI System
-        this.uiSystem = new UISystem();
+        this.uiSystem = new UISystem(this.DEBUG_MODE);
 
         // Player 초기화 (SoundSystem 로드 후)
         this.player = new Player(
@@ -178,7 +183,9 @@ export class Game {
         }
 
         // 시작 화면 처리
-        this._setupStartScreen();
+        if (!this.DEBUG_MODE) {
+            this._setupStartScreen();
+        }
     }
 
     _setupStartScreen() {
@@ -282,13 +289,13 @@ export class Game {
         this._clampPlayerToGround();
 
         // 적 스폰/AI 업데이트
-        if (this.enemySpawner) {
-        this.enemySpawner.update(delta, this.player);
+        if (this.enemySpawner && !this.DEBUG_MODE) {
+            this.enemySpawner.update(delta, this.player);
 
-        // 각 enemy의 AI update
-        this.enemySpawner.enemies.forEach(enemy => {
-            enemy.update(delta, this.player);
-        });
+            // 각 enemy의 AI update
+            this.enemySpawner.enemies.forEach(enemy => {
+                enemy.update(delta, this.player);
+            });
         }
 
         // 전투 판정 (양쪽 공격/피격)
@@ -310,6 +317,28 @@ export class Game {
             this.decorationSystem.update(delta);
         }
 
+        // debug 정보 구성
+        const bounds = this.environmentSystem.getGroundBounds();
+        let debugInfo = null;
+        if (this.DEBUG_MODE && this.player && this.player.mesh) {
+            const pos = this.player.mesh.position;
+            const enemyCount = this.enemySpawner
+                ? this.enemySpawner.enemies.length
+                : 0;
+
+            // 간단한 FPS 계산 (delta 기반)
+            const fps = delta > 0 ? 1 / delta : 0;
+
+            debugInfo = {
+                fps,
+                playerPos: { x: pos.x, y: pos.y, z: pos.z },
+                playerYaw: this.input.yaw,
+                enemyCount,
+                modeName: this.environmentSystem?.currentMode,
+                bounds,
+            };
+        }
+
         // ui 갱신
         if (this.uiSystem && this.player) {
             this.uiSystem.update({
@@ -318,7 +347,8 @@ export class Game {
                 killCount: this.killCount ?? 0,
                 level: this.player.level ?? 1,
                 elapsedTime: this.elapsedTime,
-        });
+                debugInfo,  // 디버그 정보 전달
+            });
         }
 
         // 카메라 위치 갱신
@@ -403,7 +433,7 @@ export class Game {
         const pos = this.player.mesh.position;
 
         // 플레이어 크기에 맞게 margin 설정 (반지름 느낌)
-        const margin = 0.5;  // 플레이어가 가로 1이라면 0.5 정도
+        const margin = 1.5;  // 플레이어가 가로 1이라면 0.5 정도
 
         const minX = bounds.minX + margin;
         const maxX = bounds.maxX - margin;
