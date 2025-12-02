@@ -110,7 +110,7 @@ export class Game {
         });
 
         // Decoration System
-        this.decorationSystem = new DecorationSystem(this.scene, this.environmentSystem);
+        // this.decorationSystem = new DecorationSystem(this.scene, this.environmentSystem);
 
         // Sound System 초기화 (Enemy Spawner보다 먼저)
         this.soundSystem = new SoundSystem();
