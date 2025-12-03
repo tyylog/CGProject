@@ -300,7 +300,7 @@ export class Game {
         this._clampPlayerToGround();
 
         // 적 스폰/AI 업데이트
-        if (this.enemySpawner && this.DEBUG_MODE) {
+        if (this.enemySpawner) {
             this.enemySpawner.update(delta, this.player);
 
             // 각 enemy의 AI update
