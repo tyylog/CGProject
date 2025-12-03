@@ -1,5 +1,6 @@
 // entities/Enemy.js
 import * as THREE from 'three';
+import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Character } from './Character.js';
 
@@ -172,7 +173,7 @@ export class Enemy extends Character {
                         this.playAnimation('Idle', true);
                     }
                 });
-
+                this._createHealthBar();
                 this.isModelLoaded = true;
             },
             undefined,
@@ -385,6 +386,7 @@ export class Enemy extends Character {
         }
 
         this.hp = Math.max(0, this.hp - amount);
+        this._updateHealthBar();
 
         // HP 0이면 죽음 처리
         if (this.hp <= 0) {
@@ -407,6 +409,19 @@ export class Enemy extends Character {
             this.isDying = true;
             this.state = 'death';
             this.playAnimation('Death', false);
+
+            // 체력바 제거
+            if (this.hpLabel) {
+                // DOM 제거
+                if (this.hpLabel.element) {
+                    this.hpLabel.element.remove();
+                }
+                // THREE 그래프에서 제거
+                if (this.hpLabel.parent) {
+                    this.hpLabel.parent.remove(this.hpLabel);
+                }
+            }
+
             // 죽음 사운드 재생 (Hit와 동일)
             if (this.soundSystem) {
                 this.soundSystem.playSFX('enemyHit');
@@ -419,5 +434,38 @@ export class Enemy extends Character {
         // Death 애니메이션이 재생 중일 때는 아직 "죽지 않은" 것으로 처리
         // 애니메이션이 끝나고 onDeathCallback이 호출된 후에야 진짜 제거됨
         return false;
+    }
+
+    _createHealthBar() {
+        // 컨테이너 div
+        const container = document.createElement('div');
+        container.style.width = '40px';
+        container.style.height = '3px';
+        container.style.background = 'rgba(0,0,0,0.4)';
+        container.style.border = '1px solid #000';
+        container.style.borderRadius = '3px';
+
+        // 실제 HP 바
+        this.hpBarEl = document.createElement('div');
+        this.hpBarEl.style.height = '100%';
+        this.hpBarEl.style.width = '100%';
+        this.hpBarEl.style.background = '#ff4444';
+        this.hpBarEl.style.borderRadius = '1px';
+
+        container.appendChild(this.hpBarEl);
+
+        // CSS2DObject로 변환
+        this.hpLabel = new CSS2DObject(container);
+        this.hpLabel.position.set(0, 2.03, 0); // 적 머리 위 위치
+        this.mesh.add(this.hpLabel);
+    }
+
+    _updateHealthBar() {
+        const ratio = this.hp / this.maxHp;
+        this.hpBarEl.style.width = (ratio * 100) + '%';
+
+        if (this.hp <= 0) {
+            this.hpLabel.element.style.display = 'none';
+        }
     }
 }
