@@ -1,5 +1,6 @@
 // core/Game.js
 import * as THREE from 'three';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { Player } from '../entities/Player.js';
 import { InputController } from './InputController.js';
 import { EnemySpawner } from '../systems/EnemySpawner.js';
@@ -19,6 +20,7 @@ export class Game {
         this.scene = null;
         this.camera = null;
         this.renderer = null;
+        this.labelRenderer = null;
 
         this.player = null;
         this.ground = null;
@@ -72,6 +74,15 @@ export class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setClearColor(0xffffff);
         document.body.appendChild(this.renderer.domElement);
+
+        // CSS2DRenderer 초기화 (enemy HP bar 용도)
+        this.labelRenderer = new CSS2DRenderer();
+        this.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        this.labelRenderer.domElement.style.position = 'absolute';
+        this.labelRenderer.domElement.style.top = '0px';
+        this.labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(this.labelRenderer.domElement);
+
     }
 
     _initWorld() {
@@ -110,7 +121,7 @@ export class Game {
         });
 
         // Decoration System
-        this.decorationSystem = new DecorationSystem(this.scene, this.environmentSystem);
+        // this.decorationSystem = new DecorationSystem(this.scene, this.environmentSystem);
 
         // Sound System 초기화 (Enemy Spawner보다 먼저)
         this.soundSystem = new SoundSystem();
@@ -289,7 +300,7 @@ export class Game {
         this._clampPlayerToGround();
 
         // 적 스폰/AI 업데이트
-        if (this.enemySpawner && !this.DEBUG_MODE) {
+        if (this.enemySpawner) {
             this.enemySpawner.update(delta, this.player);
 
             // 각 enemy의 AI update
@@ -356,7 +367,9 @@ export class Game {
         this._updateCamera();
 
         this.renderer.render(this.scene, this.camera);
+        this.labelRenderer.render(this.scene, this.camera);
         requestAnimationFrame(this.animate);
+
     }
 
     _updateCamera() {
