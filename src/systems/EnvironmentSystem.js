@@ -211,6 +211,8 @@ export class EnvironmentSystem {
 
         const wallPath   = 'assets/models/wall_origin.glb';         // 경로는 프로젝트 구조에 맞게 수정
         const cornerPath = 'assets/models/wall_corner_origin.glb';
+        const frontDoorPath = 'assets/models/front_door_closed.glb';
+        const backDoorPath  = 'assets/models/back_door_closed.glb';
 
         const loadGLB = (path) =>
             new Promise((resolve, reject) => {
@@ -222,8 +224,8 @@ export class EnvironmentSystem {
                 );
             });
 
-        Promise.all([loadGLB(wallPath), loadGLB(cornerPath)])
-            .then(([wallBase, cornerBase]) => {
+        Promise.all([loadGLB(wallPath), loadGLB(cornerPath), loadGLB(frontDoorPath), loadGLB(backDoorPath)])
+            .then(([wallBase, cornerBase, frontDoor, backDoor]) => {
                 const wallScale = 5;
 
                 wallBase.scale.set(wallScale, wallScale, wallScale);
@@ -263,9 +265,10 @@ export class EnvironmentSystem {
                 // index : 1 ~ N-1 (코너 제외)
                 for (let i = 1; i < targetSegCountX - 1; i++) {
                     const px = minX + (i + 0.5) * stepX;
-
+                    let south;
                     // 남쪽 (minZ)
-                    const south = wallBase.clone(true);
+                    
+                    south = wallBase.clone(true);
                     south.position.set(px, y, minZ);
                     south.rotation.y = 0; // ✅ wall.glb가 X+ 방향으로 놓였다고 가정
                     this.scene.add(south);
