@@ -142,6 +142,17 @@ export class Enemy extends Character {
 
                     // Death 애니메이션이 끝나면 제거
                     if (clipName === 'Death') {
+                        // 체력바 제거
+                        if (this.hpLabel) {
+                            // DOM 제거
+                            if (this.hpLabel.element) {
+                                this.hpLabel.element.remove();
+                            }
+                            // THREE 그래프에서 제거
+                            if (this.hpLabel.parent) {
+                                this.hpLabel.parent.remove(this.hpLabel);
+                            }
+                        }
                         if (typeof this.onDeathCallback === 'function') {
                             this.onDeathCallback(this);
                         }
@@ -409,18 +420,6 @@ export class Enemy extends Character {
             this.isDying = true;
             this.state = 'death';
             this.playAnimation('Death', false);
-
-            // 체력바 제거
-            if (this.hpLabel) {
-                // DOM 제거
-                if (this.hpLabel.element) {
-                    this.hpLabel.element.remove();
-                }
-                // THREE 그래프에서 제거
-                if (this.hpLabel.parent) {
-                    this.hpLabel.parent.remove(this.hpLabel);
-                }
-            }
 
             // 죽음 사운드 재생 (Hit와 동일)
             if (this.soundSystem) {
