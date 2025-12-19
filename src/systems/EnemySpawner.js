@@ -139,4 +139,27 @@ export class EnemySpawner {
     setBoundsProvider(fn) {
         this.boundsProvider = fn;   // () => ({minX, maxX, minZ, maxZ}) 또는 null
     }
+
+    setPhaseConfig(patch = {}) {
+        // patch: { spawnInterval?, maxEnemies?, minSpawnRadius?, maxSpawnRadius?, enemyOptions? }
+        const {
+            spawnInterval,
+            maxEnemies,
+            minSpawnRadius,
+            maxSpawnRadius,
+            enemyOptions,
+        } = patch;
+
+        if (typeof spawnInterval === 'number') this.spawnInterval = spawnInterval;
+        if (typeof maxEnemies === 'number') this.maxEnemies = maxEnemies;
+        if (typeof minSpawnRadius === 'number') this.minSpawnRadius = minSpawnRadius;
+        if (typeof maxSpawnRadius === 'number') this.maxSpawnRadius = maxSpawnRadius;
+
+        if (enemyOptions && typeof enemyOptions === 'object') {
+            
+        // 기존 옵션 유지 + 덮어쓰기
+        this.enemyOptions = { ...this.enemyOptions, ...enemyOptions };
+        }
+    }
+
 }

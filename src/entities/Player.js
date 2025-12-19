@@ -238,7 +238,7 @@ export class Player extends Character {
             if (this.soundSystem) {
                 this.soundSystem.playSFX('playerDeath');
             }
-            console.log('Player death animation started');
+            
         }
         // onDeathCallback은 Death 애니메이션이 끝난 후 호출됨 (finished 이벤트에서)
     }

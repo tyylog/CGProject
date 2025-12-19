@@ -27,7 +27,7 @@ export class Enemy extends Character {
             attackCooldown = 1.0,
             // 히스테리시스: 공격 진입/이탈 범위
             attackEnterRange = attackRange - 0.5,   // AI가 공격 상태로 전환되는 거리
-            attackExitRange = attackRange + 1.5       // AI가 공격을 중단하고 추적으로 돌아가는 거리
+            attackExitRange = attackRange + 2       // AI가 공격을 중단하고 추적으로 돌아가는 거리
         } = options;
 
         this.maxHp = maxHp;

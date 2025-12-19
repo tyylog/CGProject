@@ -7,8 +7,9 @@ import { EnemySpawner } from '../systems/EnemySpawner.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
 import { EnvironmentSystem } from '../systems/EnvironmentSystem.js';
 import { UISystem } from '../systems/UISystem.js';
-import { DecorationSystem } from '../systems/DecorationSystem.js';
 import { SoundSystem } from '../systems/SoundSystem.js';
+import { PHASE_CONFIGS } from '../config/phaseConfig.js';
+
 
 
 
@@ -31,12 +32,15 @@ export class Game {
         this.combatSystem = null;
         this.environmentSystem = null;
         this.uiSystem = null;
-        this.decorationSystem = null;
         this.soundSystem = null;
 
         this.elapsedTime = 0;
         this.killCount = 0;
         this.isGameOver = false;
+
+        this.phaseConfigs = PHASE_CONFIGS;
+        this.phaseIndex = 0;
+        this.phaseLengthSec = 60; // 각 phase 당 길이 (초)
 
         // 🔥 디버그 모드면 바로 시작된 상태로
         this.isGameStarted = this.DEBUG_MODE ? true : false;
@@ -112,9 +116,6 @@ export class Game {
         // Environment System
         this.environmentSystem = new EnvironmentSystem(this.scene, this.renderer, this.ground);
 
-        // Decoration System
-        // this.decorationSystem = new DecorationSystem(this.scene, this.environmentSystem);
-
         // Sound System 초기화 (Enemy Spawner보다 먼저)
         this.soundSystem = new SoundSystem();
         this.soundSystem.loadBGM('./assets/sounds/Ost/game.mp3');
@@ -164,7 +165,6 @@ export class Game {
             enemyAttackCooldown: 1.0,
         });
 
-
         // UI System
         this.uiSystem = new UISystem(this.DEBUG_MODE);
 
@@ -189,6 +189,10 @@ export class Game {
         if (!this.DEBUG_MODE) {
             this._setupStartScreen();
         }
+
+        // Phase 초기화
+        this.phaseIndex = -1;
+        this.applyPhase(0);
     }
 
     _setupStartScreen() {
@@ -283,6 +287,16 @@ export class Game {
         }
 
         this.elapsedTime += delta;
+
+        // phase 변경 체크
+        const newPhaseIndex = Math.floor(this.elapsedTime / this.phaseLengthSec);
+
+        // 정의된 마지막 페이즈 이후면 고정
+        const clampedPhaseIndex = Math.min(newPhaseIndex, this.phaseConfigs.length - 1);
+
+        if (clampedPhaseIndex !== this.phaseIndex) {
+            this.applyPhase(clampedPhaseIndex);
+        }
 
         // 입력 업데이트
         this.input.update();
@@ -443,6 +457,25 @@ export class Game {
 
         pos.x = Math.max(minX, Math.min(maxX, pos.x));
         pos.z = Math.max(minZ, Math.min(maxZ, pos.z));
+    }
+
+    applyPhase(nextIndex) {
+        this.phaseIndex = nextIndex;
+
+        const cfg = this.phaseConfigs?.[nextIndex];
+        if (cfg && this.enemySpawner?.setPhaseConfig) {
+            this.enemySpawner.setPhaseConfig(cfg);
+        }
+
+        // UI 토스트
+        if (this.uiSystem?.showPhaseToast) {
+            this.uiSystem.showPhaseToast(nextIndex);
+        }
+
+        // 포션 1개 지급
+        if (this.player && nextIndex > 0) {
+            this.player.addPotion(1);
+        }
     }
 
 }

@@ -172,6 +172,34 @@ export class UISystem {
 
         document.body.appendChild(this.gameOverText);
 
+        // ============================
+        // phase 토스트 메시지
+        // ============================ 
+        this.phaseToast = document.createElement('div');
+        Object.assign(this.phaseToast.style, {
+            position: 'fixed',
+            top: '100px',               // TIME 아래쪽 느낌
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontFamily: 'monospace',
+            fontSize: '56px',
+            fontWeight: 'bold',
+            letterSpacing: '2px',
+            color: '#fff',
+            background: 'rgba(0,0,0,0.35)',
+            padding: '20px 36px',
+            borderRadius: '16px',
+            textShadow: '0 0 16px rgba(0,0,0,0.95)',
+            zIndex: '2000',
+            opacity: '0',
+            transition: 'opacity 0.35s ease',
+            pointerEvents: 'none',
+        });
+        this.phaseToast.textContent = '';
+        document.body.appendChild(this.phaseToast);
+
+        this._phaseToastTimer = null;
+
         // root에 추가
         this.root.appendChild(this.hpContainer);
         this.root.appendChild(this.staminaContainer);
@@ -291,5 +319,17 @@ export class UISystem {
             pointerEvents: 'none',
         });
         document.body.appendChild(this.debugEl);
+    }
+
+    showPhaseToast(phaseIndex) {
+        if (!this.phaseToast) return;
+
+        this.phaseToast.textContent = `PHASE ${phaseIndex + 1}`;
+        this.phaseToast.style.opacity = '1';
+
+        if (this._phaseToastTimer) clearTimeout(this._phaseToastTimer);
+        this._phaseToastTimer = setTimeout(() => {
+        this.phaseToast.style.opacity = '0';
+        }, 2000); // 2초 보여주고 사라짐
     }
 }
