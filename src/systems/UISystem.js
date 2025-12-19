@@ -330,6 +330,6 @@ export class UISystem {
         if (this._phaseToastTimer) clearTimeout(this._phaseToastTimer);
         this._phaseToastTimer = setTimeout(() => {
         this.phaseToast.style.opacity = '0';
-        }, 2000); // 2초 보여주고 사라짐
+        }, 2500); // 2.5초 보여주고 사라짐
     }
 }

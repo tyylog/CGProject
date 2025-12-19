@@ -5,7 +5,7 @@ export class Character {
     constructor(scene) {
         this.scene = scene;
         this.mesh = null;
-        this.hp = 10000;
+        this.hp = 100;
         this.maxHp = 100;
 
         this.collider = new THREE.Box3();

@@ -25,6 +25,10 @@ export class EnvironmentSystem {
         // 지면 바운드
         this.groundBounds = null;
 
+        // 달 객체
+        this.moon = null;
+        this.moonPivot = null;
+
         // 성벽 객체들 보관
         this.wallSegments = [];
         this.wallCorners = [];
@@ -55,6 +59,8 @@ export class EnvironmentSystem {
 
         // 초기 적용
         this.setMode(this.currentMode, true);
+
+        this.addMoon();
     }
 
     /** 모드 바꾸기 (즉시 또는 부드럽게) */
@@ -327,6 +333,72 @@ export class EnvironmentSystem {
             });
     }
 
+    addMoon(options = {}) {
+        const {
+            path = 'assets/models/moon.glb',
+
+            // 피벗(하늘의 기준점). 보통 맵 중앙 위
+            pivotPosition = new THREE.Vector3(0, 140, 0),
+
+            // 피벗으로부터 달이 얼마나 떨어져 있을지 (이게 "하늘에 떠 있음" 느낌 핵심)
+            moonOffset = new THREE.Vector3(0, 0, -220),
+
+            scale = 40,
+            usePivot = true,
+        } = options;
+
+        // 이미 있으면 재배치만
+        if (this.moon) {
+            if (usePivot && this.moonPivot) {
+            this.moonPivot.position.copy(pivotPosition);
+            this.moon.position.copy(moonOffset);
+            } else {
+            this.moon.position.copy(pivotPosition.clone().add(moonOffset));
+            }
+            this.moon.scale.setScalar(scale);
+            this.moon.updateMatrixWorld(true);
+            return;
+        }
+
+        this.gltfLoader.load(
+            path,
+            (gltf) => {
+            this.moon = gltf.scene;
+
+            // 달은 조명 영향 덜 받게(안 해도 뜨긴 함)
+            this.moon.traverse((c) => {
+                if (!c.isMesh) return;
+                c.castShadow = false;
+                c.receiveShadow = false;
+                const mat = c.material;
+                if (mat) {
+                if (mat.emissive) mat.emissive.set(0xffffff);
+                if ('emissiveIntensity' in mat) mat.emissiveIntensity = 0.25;
+                mat.needsUpdate = true;
+                }
+            });
+
+            this.moon.scale.setScalar(scale);
+
+            if (usePivot) {
+                // 피벗을 월드에 두고, 달을 오프셋으로 띄우기
+                this.moonPivot = new THREE.Object3D();
+                this.moonPivot.position.copy(pivotPosition);
+                this.scene.add(this.moonPivot);
+
+                this.moon.position.copy(moonOffset);   // ✅ 이게 핵심
+                this.moonPivot.add(this.moon);
+            } else {
+                this.moon.position.copy(pivotPosition.clone().add(moonOffset));
+                this.scene.add(this.moon);
+            }
+
+            this.moon.updateMatrixWorld(true);
+            },
+            undefined,
+            (err) => console.error('Failed to load moon:', err)
+        );
+        }
 
 
 }

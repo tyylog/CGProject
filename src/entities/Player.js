@@ -132,7 +132,6 @@ export class Player extends Character {
 
                     // Death 애니메이션이 끝난 경우 → 무조건 제일 우선
                     if (clipName === 'Death') {
-                        console.log('Death animation finished, calling game over');
                         if (typeof this.onDeathCallback === 'function') {
                             this.onDeathCallback(this);
                         }
@@ -227,6 +226,9 @@ export class Player extends Character {
             this.isDying = true;
             this.isAttacking = false;  // 공격 중이어도 강제 해제
             this.isAttackActive = false;  // 공격 판정 비활성화
+
+            // 땅에 고정
+            this.mesh.position.y = 0;
 
             // 배경음악 즉시 중지
             if (typeof this.onBGMStopRequest === 'function') {
