@@ -112,14 +112,6 @@ export class Game {
         // Environment System
         this.environmentSystem = new EnvironmentSystem(this.scene, this.renderer, this.ground);
 
-        window.addEventListener('keydown', (e) => {
-            if (!this.environmentSystem) return;
-
-            if (e.key === '1') this.environmentSystem.setMode('grassland');
-            if (e.key === '2') this.environmentSystem.setMode('wasteland');
-            if (e.key === '3') this.environmentSystem.setMode('hell');
-        });
-
         // Decoration System
         // this.decorationSystem = new DecorationSystem(this.scene, this.environmentSystem);
 
@@ -140,8 +132,8 @@ export class Game {
 
         // Enemy Spawner
         this.enemySpawner = new EnemySpawner(this.scene, this.ground, {
-                maxEnemies: 15,
-                spawnInterval: 3.0,
+                maxEnemies: 30,
+                spawnInterval: 0.8,
                 minSpawnRadius: 10,
                 maxSpawnRadius: 30,
                 enemyOptions: {

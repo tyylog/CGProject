@@ -50,7 +50,7 @@ export class Enemy extends Character {
         this.state = 'idle';  // 기본 상태는 idle
         this.isDying = false;  // 죽음 상태 플래그
         this.spawnTime = 0;  // spawn 후 경과 시간
-        this.spawnDelay = 0.1;  // 0.1초 대기 후 chase 시작
+        this.spawnDelay = 0.5;  // 0.5초 대기 후 chase 시작
         this.previousState = 'idle';  // Hit 상태 전의 상태 저장
         this.isAttackActive = false;  // 공격 판정 활성화 플래그 (애니메이션 50% 시점에만 true)
         this.attackSoundPlayed = false;  // 공격 사운드 재생 여부 (중복 재생 방지)

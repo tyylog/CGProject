@@ -37,9 +37,10 @@ export class EnvironmentSystem {
         // 모드 정의 (전부 glb 기반)
         this.modes = {
             grassland: {
-                bg: new THREE.Color(0x87ceeb),
+                bg: new THREE.Color(0x200010),
                 modelPath: 'assets/textures/ground_grass.glb',
             },
+            // below modes are not used now
             wasteland: {
                 bg: new THREE.Color(0xffb266),
                 modelPath: 'assets/textures/ground_grass.glb',
