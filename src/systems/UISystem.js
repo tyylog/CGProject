@@ -18,7 +18,7 @@ export class UISystem {
         // HP 바
         // ============================
         this.hpContainer = document.createElement('div');
-        this.hpContainer.style.width = '240px';
+        this.hpContainer.style.width = '360px';
         this.hpContainer.style.height = '18px';
         this.hpContainer.style.border = '2px solid white';
         this.hpContainer.style.background = 'rgba(0,0,0,0.4)';
@@ -34,11 +34,49 @@ export class UISystem {
         this.hpText.style.marginBottom = '10px';
 
         // ============================
-        // killCount + 레벨
+        // STAMINA 바
         // ============================
-        this.killText = document.createElement('div');
-        this.killText.style.fontSize = '14px';
-        this.killText.style.marginBottom = '10px';
+        this.staminaContainer = document.createElement('div');
+        this.staminaContainer.style.width = '360px';
+        this.staminaContainer.style.height = '4px';
+        this.staminaContainer.style.border = '2px solid white';
+        this.staminaContainer.style.background = 'rgba(0,0,0,0.4)';
+        this.staminaContainer.style.marginBottom = '6px';
+
+        this.staminaBar = document.createElement('div');
+        this.staminaBar.style.height = '100%';
+        this.staminaBar.style.width = '100%';
+        this.staminaBar.style.background = '#e8eef1ff';
+        this.staminaContainer.appendChild(this.staminaBar);
+
+        this.staminaText = document.createElement('div');
+        this.staminaText.style.fontSize = '14px';
+        this.staminaText.style.marginBottom = '10px';
+
+        // ============================
+        // score 텍스트 (우측 상단)
+        // ============================
+        this.scoreTopText = document.createElement('div');
+        this.scoreTopText.style.position = 'fixed';
+        this.scoreTopText.style.top = '10px';
+        this.scoreTopText.style.right = '20px';
+
+        this.scoreTopText.style.fontSize = '32px';
+        this.scoreTopText.style.fontWeight = 'bold';
+        this.scoreTopText.style.letterSpacing = '2px';
+        this.scoreTopText.style.fontFamily = 'monospace';
+        this.scoreTopText.style.color = '#ffffff';
+        this.scoreTopText.style.textShadow = '0 0 10px rgba(0,0,0,0.9)';
+        this.scoreTopText.style.zIndex = '1000';
+
+        // 배경(optional, TIME이랑 통일)
+        this.scoreTopText.style.background = 'rgba(0,0,0,0.4)';
+        this.scoreTopText.style.padding = '6px 14px';
+        this.scoreTopText.style.borderRadius = '6px';
+
+        this.scoreTopText.textContent = 'SCORE: 0';
+
+        document.body.appendChild(this.scoreTopText);
 
         // ============================
         // 경과 시간
@@ -46,13 +84,78 @@ export class UISystem {
         this.timeText = document.createElement('div');
         this.timeText.style.fontSize = '14px';
 
-        // root에 추가
-        this.root.appendChild(this.hpContainer);
-        this.root.appendChild(this.hpText);
-        this.root.appendChild(this.killText);
-        this.root.appendChild(this.timeText);
+        this.timeText.style.position = 'fixed';
+        this.timeText.style.top = '10px';
+        this.timeText.style.left = '50%';
+        this.timeText.style.transform = 'translateX(-50%)';
 
+        this.timeText.style.fontSize = '32px';
+        this.timeText.style.fontWeight = 'bold';
+        this.timeText.style.letterSpacing = '2px';
+        this.timeText.style.textShadow = '0 0 10px rgba(0,0,0,0.9)';
+        this.timeText.style.zIndex = '1000';
+
+        this.timeText.style.fontFamily = 'monospace';
+        this.timeText.style.background = 'rgba(0,0,0,0.4)';
+        this.timeText.style.padding = '6px 14px';
+        this.timeText.style.borderRadius = '6px';
+
+        // ============================
+        // 🧪 포션 UI (좌측 하단: 슬롯 + 아이콘 + 숫자)
+        // ============================
+        this.potionContainer = document.createElement('div');
+            Object.assign(this.potionContainer.style, {
+            position: 'relative',
+            width: '72px',     // 슬롯 크기
+            height: '72px',
+            background: '#7a7a7a',   // 회색 슬롯
+            border: '3px solid rgba(255,255,255,0.35)',
+            borderRadius: '6px',
+            boxShadow: '0 0 10px rgba(0,0,0,0.35)',
+            zIndex: 999,
+
+            pointerEvents: 'none',
+        });
+
+        // 아이콘 이미지 (중앙)
+        this.potionIcon = document.createElement('img');
+        this.potionIcon.src = './assets/images/potion.png';
+        Object.assign(this.potionIcon.style, {
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%) rotate(30deg)',
+
+            width: '52px',     // 아이콘 크기
+            height: '52px',
+            objectFit: 'contain',
+
+            // 픽셀 느낌 원하면 켜기
+            imageRendering: 'pixelated',
+
+            filter: 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
+        });
+
+        // 우하단 숫자
+        this.potionCountText = document.createElement('div');
+        Object.assign(this.potionCountText.style, {
+            position: 'absolute',
+            right: '6px',
+            bottom: '4px',
+
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '22px',
+            fontWeight: '900',
+        });
+
+        this.potionContainer.appendChild(this.potionIcon);
+        this.potionContainer.appendChild(this.potionCountText);
+
+        // ============================
         // 게임 오버 텍스트
+        // ============================
+
         this.gameOverText = document.createElement('div');
         this.gameOverText.style.position = 'fixed';
         this.gameOverText.style.top = '50%';
@@ -67,6 +170,41 @@ export class UISystem {
 
         document.body.appendChild(this.gameOverText);
 
+        // ============================
+        // phase 토스트 메시지
+        // ============================ 
+        this.phaseToast = document.createElement('div');
+        Object.assign(this.phaseToast.style, {
+            position: 'fixed',
+            top: '100px',               // TIME 아래쪽 느낌
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontFamily: 'monospace',
+            fontSize: '56px',
+            fontWeight: 'bold',
+            letterSpacing: '2px',
+            color: '#fff',
+            background: 'rgba(0,0,0,0.35)',
+            padding: '20px 36px',
+            borderRadius: '16px',
+            textShadow: '0 0 16px rgba(0,0,0,0.95)',
+            zIndex: '2000',
+            opacity: '0',
+            transition: 'opacity 0.35s ease',
+            pointerEvents: 'none',
+        });
+        this.phaseToast.textContent = '';
+        document.body.appendChild(this.phaseToast);
+
+        this._phaseToastTimer = null;
+
+        // root에 추가
+        this.root.appendChild(this.hpContainer);
+        this.root.appendChild(this.staminaContainer);
+        this.root.appendChild(this.hpText);
+        this.root.appendChild(this.potionContainer);
+        this.root.appendChild(this.timeText);
+
         // 디버그 모드 패널
         this.debugMode = DEBUG_MODE;
         if (this.debugMode) {
@@ -78,31 +216,58 @@ export class UISystem {
      * @param {object} data
      * @param {number} data.hp
      * @param {number} data.maxHp
+     * @param {number} data.stamina
+     * @param {number} data.maxStamina
      * @param {number} data.killCount
-     * @param {number} data.level
      * @param {number} data.elapsedTime  (초 단위)
+     * @param {number} data.potionCount  (소지한 포션 개수)
      * @param {object} debugInfo  디버그 정보 객체
      */
     update(data) {
         if (!data) return;
 
-        const { hp = 0, maxHp = 100, killCount = 0, level = 1, elapsedTime = 0, debugInfo, } = data;
+        // stamina/maxStamina 추가 (기본값 지정)
+        const {
+            hp = 0,
+            maxHp = 100,
+            stamina = 100,
+            maxStamina = 100,
+            killCount = 0,
+            elapsedTime = 0,
+            potionCount = 0,
+            debugInfo,
+        } = data;
 
         // HP 바 비율 반영
-        const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
-        this.hpBar.style.width = (ratio * 100) + '%';
+        const hpRatio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
+        this.hpBar.style.width = (hpRatio * 100) + '%';
 
         // HP 텍스트
         this.hpText.textContent = `HP: ${hp} / ${maxHp}`;
 
-        // EXP + 레벨
-        this.killText.textContent = `LV ${level} | KILL: ${killCount}`;
+        // STAMINA 바 비율 반영
+        const stRatio = maxStamina > 0 ? Math.max(0, Math.min(1, stamina / maxStamina)) : 0;
+        this.staminaBar.style.width = (stRatio * 100) + '%';
+
+        // STAMINA 텍스트
+        this.staminaText.textContent = `STA: ${Math.floor(stamina)} / ${maxStamina}`;
+
+        // score 텍스트
+        const timeScore = Math.floor(elapsedTime) * 100; // 1초마다 +100
+        const killScore = killCount * 200;               // 킬당 +200
+        this.score = killScore + timeScore;
+        this.scoreTopText.textContent = `SCORE: ${this.score}`;
 
         // 시간 표시 (MM:SS)
         const t = Math.floor(elapsedTime);
         const min = Math.floor(t / 60);
         const sec = (t % 60).toString().padStart(2, '0');
-        this.timeText.textContent = `Time: ${min}:${sec}`;
+        this.timeText.textContent = `${min}:${sec}`;
+
+        // 🧪 포션 개수 텍스트 갱신
+        if (this.potionCountText) {
+            this.potionCountText.textContent = `${potionCount}`;
+        }
 
         // 🔹 디버그 패널 갱신
         if (this.debugMode && this.debugEl && debugInfo) {
@@ -152,5 +317,18 @@ export class UISystem {
             pointerEvents: 'none',
         });
         document.body.appendChild(this.debugEl);
+    }
+
+    showPhaseToast(phaseIndex) {
+        if (!this.phaseToast) return;
+
+        this.phaseToast.textContent = `PHASE ${phaseIndex + 1}`;
+        this.phaseToast.style.opacity = '1';
+
+        if (this._phaseToastTimer) clearTimeout(this._phaseToastTimer);
+        this._phaseToastTimer = setTimeout(() => {
+            this.phaseToast.style.opacity = '0';
+            }, 2500 // 2.5초 보여주고 사라짐
+        );
     }
 }

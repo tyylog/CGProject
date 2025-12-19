@@ -13,6 +13,9 @@ export class InputController {
             space: false,
         };
 
+        // 🔹 한 번만 소비하는 키 입력들 (포션 같은 것)
+        this.keyPresses = new Set();
+
         this.mouseButtons = {
             left: false,
             right: false,
@@ -41,11 +44,18 @@ export class InputController {
         });
 
         window.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            if (key in this.keys) this.keys[key] = true;
-            if (e.key === 'Shift') this.keys.shift = true;
-            if (e.code === 'Space') this.keys.space = true;
+        const key = e.key.toLowerCase();
+
+        if (key in this.keys) this.keys[key] = true;
+        if (e.key === 'Shift') this.keys.shift = true;
+        if (e.code === 'Space') this.keys.space = true;
+
+        // ✅ Shift 눌러도 항상 동일하게 들어오는 code로 처리
+        if (e.code === 'Digit1' || e.code === 'Numpad1') {
+            this.keyPresses.add('potion');   // 토큰은 마음대로
+        }
         });
+
 
         window.addEventListener('keyup', (e) => {
             const key = e.key.toLowerCase();

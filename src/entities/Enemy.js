@@ -25,6 +25,9 @@ export class Enemy extends Character {
             attackRange = 2,
             attackDamage = 5,
             attackCooldown = 1.0,
+            // 히스테리시스: 공격 진입/이탈 범위
+            attackEnterRange = attackRange - 0.5,   // AI가 공격 상태로 전환되는 거리
+            attackExitRange = attackRange + 2       // AI가 공격을 중단하고 추적으로 돌아가는 거리
         } = options;
 
         this.maxHp = maxHp;
@@ -32,7 +35,13 @@ export class Enemy extends Character {
 
         this.moveSpeed = moveSpeed;
         this.chaseRange = chaseRange;
+
+        // 실제 데미지 판정용 기본 attackRange는 그대로 유지 (CombatSystem 사용)
         this.attackRange = attackRange;
+
+        // AI용 진입/이탈 거리 (히스테리시스)
+        this.attackEnterRange = attackEnterRange;
+        this.attackExitRange = attackExitRange;
         this.attackDamage = attackDamage;
         this.attackCooldown = attackCooldown;
 
@@ -43,10 +52,11 @@ export class Enemy extends Character {
         this.state = 'idle';  // 기본 상태는 idle
         this.isDying = false;  // 죽음 상태 플래그
         this.spawnTime = 0;  // spawn 후 경과 시간
-        this.spawnDelay = 1.0;  // 1초 대기 후 chase 시작
+        this.spawnDelay = 0.5;  // 0.5초 대기 후 chase 시작
         this.previousState = 'idle';  // Hit 상태 전의 상태 저장
         this.isAttackActive = false;  // 공격 판정 활성화 플래그 (애니메이션 50% 시점에만 true)
         this.attackSoundPlayed = false;  // 공격 사운드 재생 여부 (중복 재생 방지)
+        this.killCounted = false;  // 킬 카운트가 이미 반영되었는지
 
         // 애니메이션 관련
         this.mixer = null;
@@ -152,10 +162,12 @@ export class Enemy extends Character {
                             if (this.hpLabel.parent) {
                                 this.hpLabel.parent.remove(this.hpLabel);
                             }
+
+                            // 씬에서 메쉬 제거
+                            if (this.mesh) this.scene.remove(this.mesh);
+                            this._deadDone = true;
                         }
-                        if (typeof this.onDeathCallback === 'function') {
-                            this.onDeathCallback(this);
-                        }
+
                     }
 
                     // Hit 애니메이션이 끝나면 이전 상태로 복귀
@@ -233,7 +245,7 @@ export class Enemy extends Character {
                 // spawn 1초 후 무조건 행동 시작
                 if (this.spawnTime >= this.spawnDelay) {
                     // 플레이어가 공격 범위 안에 있으면 바로 attack
-                    if (distance <= this.attackRange) {
+                    if (distance <= this.attackEnterRange) {
                         this.state = 'attack';
                         this.isAttackActive = false;  // 공격 시작 시 비활성화
                         this.attackStarted = true;  // 새로운 공격 시작 플래그
@@ -249,7 +261,8 @@ export class Enemy extends Character {
                 break;
 
             case 'chase':
-                if (distance <= this.attackRange) {
+                // 진입 범위(enter)를 사용
+                if (distance <= this.attackEnterRange) {
                     this.state = 'attack';
                     this.isAttackActive = false;  // 공격 시작 시 비활성화
                     this.attackStarted = true;  // 새로운 공격 시작 플래그
@@ -283,7 +296,8 @@ export class Enemy extends Character {
                     }
                 }
 
-                if (distance > this.attackRange) {
+                // 이탈 범위(exit)를 사용: exit 범위를 넘기면 공격 중단
+                if (distance > this.attackExitRange) {
                     this.state = 'chase';
                     this.isAttackActive = false;  // 공격 종료 시 비활성화
                 }
@@ -364,8 +378,11 @@ export class Enemy extends Character {
             newAction.clampWhenFinished = true;
 
             // Hit 애니메이션은 1.5배 빠르게 재생
+            // Punch, Kick 애니메이션은 2배 빠르게 재생
             if (name === 'Hit') {
                 newAction.setEffectiveTimeScale(1.5);
+            } else if (name === 'Punch' || name === 'Kick') {
+                newAction.setEffectiveTimeScale(3.0);
             } else {
                 newAction.setEffectiveTimeScale(1.3);
             }
@@ -401,6 +418,11 @@ export class Enemy extends Character {
 
         // HP 0이면 죽음 처리
         if (this.hp <= 0) {
+            if (!this.killCounted && typeof this.onDeathCallback === 'function') {
+                this.killCounted = true;
+                this.onDeathCallback(this);
+            }
+
             this.die();
         } else {
             // 살아있으면 Hit 상태로 전환
@@ -432,7 +454,7 @@ export class Enemy extends Character {
     isDead() {
         // Death 애니메이션이 재생 중일 때는 아직 "죽지 않은" 것으로 처리
         // 애니메이션이 끝나고 onDeathCallback이 호출된 후에야 진짜 제거됨
-        return false;
+        return !!this._deadDone;
     }
 
     _createHealthBar() {

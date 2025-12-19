@@ -46,6 +46,23 @@ export class Player extends Character {
         this.isAttackActive = false;  // 실제 공격 판정 활성화 플래그
         this.isDying = false;  // 죽음 애니메이션 재생 중 플래그
 
+        // 스태미너 관련
+        this.maxStamina = 100;
+        this.stamina = this.maxStamina;
+        this.staminaRegen = 15;    // 초당 회복량
+        this.staminaUse = 25;      // 초당 소모량
+
+        // 체력 포션 관련
+        this.potionCount = 3;   // 기본 3개 (또는 0)
+        this.potionHealAmount = 40;   // 물약 회복량
+        this.potionStaminaAmount = 50; // 스태미너 회복량
+
+        // 달리기 온/오프 문턱
+        this.runStartThreshold = 10; // 이 이상이면 달리기 시작 가능
+        this.runStopThreshold  = 0;  // 이 이하면 강제 걷기
+
+        this.isRunning = false;
+
         // 모델 로드
         this._loadModel();
     }
@@ -113,21 +130,27 @@ export class Player extends Character {
                     const finishedAction = e.action;
                     const clipName = finishedAction.getClip().name;
 
-                    // 공격 애니메이션이 끝나면 Idle로 전환
-                    if (clipName === 'MouseLeft' || clipName === 'MouseRight' || clipName === 'Jump') {
-                        this.playAnimation('Idle', true);
-                        this.isAttacking = false;  // 공격 종료 (이동 제한 해제)
-                        this.isAttackActive = false;  // 공격 판정 비활성화
-                    }
-
-                    // Death 애니메이션이 끝나면 게임오버 처리
+                    // Death 애니메이션이 끝난 경우 → 무조건 제일 우선
                     if (clipName === 'Death') {
-                        console.log('Death animation finished, calling game over');
                         if (typeof this.onDeathCallback === 'function') {
                             this.onDeathCallback(this);
                         }
+                        return;
+                    }
+
+                    // 🔥 이미 죽는 중이면, 다른 애니메이션 끝난 건 전부 무시
+                    if (this.isDying) {
+                        return;
+                    }
+
+                    // 공격/점프 끝나면 Idle로 복귀
+                    if (clipName === 'MouseLeft' || clipName === 'MouseRight' || clipName === 'Jump') {
+                        this.playAnimation('Idle', true);
+                        this.isAttacking = false;
+                        this.isAttackActive = false;
                     }
                 });
+
 
                 this.isModelLoaded = true;
                 console.log('Player model loaded successfully');
@@ -204,6 +227,9 @@ export class Player extends Character {
             this.isAttacking = false;  // 공격 중이어도 강제 해제
             this.isAttackActive = false;  // 공격 판정 비활성화
 
+            // 땅에 고정
+            this.mesh.position.y = 0;
+
             // 배경음악 즉시 중지
             if (typeof this.onBGMStopRequest === 'function') {
                 this.onBGMStopRequest();
@@ -214,7 +240,7 @@ export class Player extends Character {
             if (this.soundSystem) {
                 this.soundSystem.playSFX('playerDeath');
             }
-            console.log('Player death animation started');
+            
         }
         // onDeathCallback은 Death 애니메이션이 끝난 후 호출됨 (finished 이벤트에서)
     }
@@ -238,9 +264,7 @@ export class Player extends Character {
         const forward = this.getForwardVector();
         const right = this.getRightVector();
 
-        let moveSpeed = this.speed;
-        if (input.keys.shift) moveSpeed *= this.runMultiplier;
-
+        // --- 이동 벡터 계산 ---
         const move = new THREE.Vector3();
 
         // 공격 중이 아닐 때만 이동 가능
@@ -251,8 +275,39 @@ export class Player extends Character {
             if (input.keys.d) move.add(right);
         }
 
-        const isMoving = move.lengthSq() > 0;
+        const isMoving   = move.lengthSq() > 0;
+        const wantsToRun = input.keys.shift;   // Shift 입력 여부
 
+        // --- 스태미너 / 달리기 상태 업데이트 ---
+        // 상태 머신처럼: "현재 뛰는 중" / "현재 걷는 중" 을 기준으로 처리
+
+        if (this.isRunning) {
+            // 이미 달리는 중일 때: 스태미너 소모
+            this.stamina -= this.staminaUse * delta;
+            if (this.stamina < 0) this.stamina = 0;
+
+            // 달리기 유지 조건 깨지면 걷기로 전환
+            if (!isMoving || !wantsToRun || this.stamina <= this.runStopThreshold) {
+                this.isRunning = false;
+            }
+        } else {
+            // 걷는 중일 때: 스태미너 회복
+            this.stamina += this.staminaRegen * delta;
+            if (this.stamina > this.maxStamina) this.stamina = this.maxStamina;
+
+            // 달리기 시작 조건
+            if (isMoving && wantsToRun && this.stamina >= this.runStartThreshold) {
+                this.isRunning = true;
+            }
+        }
+
+        // 실제 이동 속도 결정
+        let moveSpeed = this.speed;
+        if (this.isRunning) {
+            moveSpeed *= this.runMultiplier;
+        }
+
+        // --- 위치 업데이트 ---
         if (isMoving) {
             move.normalize();
             move.multiplyScalar(moveSpeed * delta);
@@ -260,8 +315,9 @@ export class Player extends Character {
         }
 
         // 점프 (아주 간단한 버전, 나중에 물리로 바꿀 수 있음)
-        if (input.keys.space && this.isGrounded) {
+        if (input.keys.space && this.isGrounded && this.stamina >= 5) {
             this.velocityY = this.jumpSpeed;
+            this.stamina -= 5;
             this.isGrounded = false;
         }
 
@@ -286,6 +342,7 @@ export class Player extends Character {
         this.updateCollider();
         this.updateAttackHitboxCollider();
     }
+
 
     _updateRotation(delta, input, isMoving) {
         // MouseRight 공격 중에는 회전 불가
@@ -396,5 +453,29 @@ export class Player extends Character {
         if (this.attackHitbox) {
             this.attackHitboxCollider.setFromObject(this.attackHitbox);
         }
+    }
+
+    usePotion() {
+        if (this.potionCount <= 0) return false;
+        if (this.isDying) return false;
+
+        this.potionCount--;
+
+        // HP 회복
+        this.hp = Math.min(this.maxHp, this.hp + this.potionHealAmount);
+
+        // 스태미너 회복
+        this.stamina = Math.min(this.maxStamina, this.stamina + this.potionStaminaAmount);
+
+        // 회복 사운드 넣으려면 여기에
+        // if (this.soundSystem) {
+        //     this.soundSystem.playSFX('potion');
+        // }
+
+        return true; // 성공
+    }
+
+    addPotion(count = 1) {
+        this.potionCount += count;
     }
 }
