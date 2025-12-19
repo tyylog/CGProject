@@ -308,7 +308,7 @@ export class Player extends Character {
         }
 
         // 점프 (아주 간단한 버전, 나중에 물리로 바꿀 수 있음)
-        if (input.keys.space && this.isGrounded && this.stamina >= 15) {
+        if (input.keys.space && this.isGrounded && this.stamina >= 5) {
             this.velocityY = this.jumpSpeed;
             this.stamina -= 5;
             this.isGrounded = false;

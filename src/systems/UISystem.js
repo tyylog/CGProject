@@ -38,7 +38,7 @@ export class UISystem {
         // ============================
         this.staminaContainer = document.createElement('div');
         this.staminaContainer.style.width = '360px';
-        this.staminaContainer.style.height = '9px';
+        this.staminaContainer.style.height = '6px';
         this.staminaContainer.style.border = '2px solid white';
         this.staminaContainer.style.background = 'rgba(0,0,0,0.4)';
         this.staminaContainer.style.marginBottom = '6px';
@@ -68,9 +68,8 @@ export class UISystem {
 
         // root에 추가
         this.root.appendChild(this.hpContainer);
-        this.root.appendChild(this.hpText);
         this.root.appendChild(this.staminaContainer);
-        this.root.appendChild(this.staminaText);
+        this.root.appendChild(this.hpText);
         this.root.appendChild(this.killText);
         this.root.appendChild(this.timeText);
 

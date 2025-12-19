@@ -140,7 +140,7 @@ export class Game {
                     color: 0xff5555,
                     radius: 0.8,
                     maxHp: 30,
-                    moveSpeed: 7,
+                    moveSpeed: 7.5,
                     chaseRange: 25,
                     loseInterestRange: 35,
                     attackRange: 2.0,
