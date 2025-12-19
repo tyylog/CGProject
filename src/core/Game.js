@@ -66,7 +66,7 @@ export class Game {
             75,
             window.innerWidth / window.innerHeight,
             0.1,
-            200
+            500
         );
         this.camera.position.set(-3, 8, 2);
         this.scene.add(this.camera);
