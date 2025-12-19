@@ -140,7 +140,7 @@ export class Game {
                     color: 0xff5555,
                     radius: 0.8,
                     maxHp: 30,
-                    moveSpeed: 7.5,
+                    moveSpeed: 8,
                     chaseRange: 25,
                     loseInterestRange: 35,
                     attackRange: 2.0,
@@ -411,16 +411,6 @@ export class Game {
     handleEnemyDeath(enemy) {
         // 1) 킬 카운트 증가
         this.killCount += 1;
-
-        // 2) 씬에서 메쉬 제거
-        if (enemy.mesh) {
-            this.scene.remove(enemy.mesh);
-        }
-
-        // 3) EnemySpawner의 enemies 배열에서 제거
-        if (this.enemySpawner && this.enemySpawner.enemies) {
-            this.enemySpawner.enemies = this.enemySpawner.enemies.filter(e => e !== enemy);
-        }
 
         // 4) 필요하면 추가 연출 (드랍 아이템, 이펙트 등) 여기에
     }

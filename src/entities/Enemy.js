@@ -162,10 +162,12 @@ export class Enemy extends Character {
                             if (this.hpLabel.parent) {
                                 this.hpLabel.parent.remove(this.hpLabel);
                             }
+
+                            // 씬에서 메쉬 제거
+                            if (this.mesh) this.scene.remove(this.mesh);
+                            this._deadDone = true;
                         }
-                        if (typeof this.onDeathCallback === 'function') {
-                            this.onDeathCallback(this);
-                        }
+
                     }
 
                     // Hit 애니메이션이 끝나면 이전 상태로 복귀
@@ -416,6 +418,11 @@ export class Enemy extends Character {
 
         // HP 0이면 죽음 처리
         if (this.hp <= 0) {
+            if (!this.killCounted && typeof this.onDeathCallback === 'function') {
+                this.killCounted = true;
+                this.onDeathCallback(this);
+            }
+
             this.die();
         } else {
             // 살아있으면 Hit 상태로 전환
@@ -447,7 +454,7 @@ export class Enemy extends Character {
     isDead() {
         // Death 애니메이션이 재생 중일 때는 아직 "죽지 않은" 것으로 처리
         // 애니메이션이 끝나고 onDeathCallback이 호출된 후에야 진짜 제거됨
-        return false;
+        return !!this._deadDone;
     }
 
     _createHealthBar() {

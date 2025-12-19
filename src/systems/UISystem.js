@@ -228,7 +228,7 @@ export class UISystem {
 
         // score 텍스트
         const timeScore = Math.floor(elapsedTime) * 100; // 1초마다 +100
-        const killScore = killCount * 200;               // 킬당 +200 (원하면 수정)
+        const killScore = killCount * 200;               // 킬당 +200
         this.score = killScore + timeScore;
         this.scoreTopText.textContent = `SCORE: ${this.score}`;
 
