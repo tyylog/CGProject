@@ -93,14 +93,6 @@ export class CombatSystem {
             // 공격 판정이 활성화되지 않았으면 스킵
             if (!enemy.isAttackActive) return;
 
-            const enemyPos = enemy.mesh.position;
-
-            const toPlayer = this._tmpVec.subVectors(playerPos, enemyPos);
-            const dist = toPlayer.length();
-
-            const range = enemy.attackRange || 2.0;
-            if (dist > range) return;
-
             // enemy별 쿨타임 꺼내기 (같은 공격으로 여러 번 맞는 것 방지)
             let timer = this._enemyAttackTimers.get(enemy) || 0;
             if (timer > 0) {

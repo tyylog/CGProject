@@ -113,11 +113,11 @@ export class Game {
         this.environmentSystem = new EnvironmentSystem(this.scene, this.renderer, this.ground);
 
         window.addEventListener('keydown', (e) => {
-        if (!this.environmentSystem) return;
+            if (!this.environmentSystem) return;
 
-        if (e.key === '1') this.environmentSystem.setMode('grassland');
-        if (e.key === '2') this.environmentSystem.setMode('wasteland');
-        if (e.key === '3') this.environmentSystem.setMode('hell');
+            if (e.key === '1') this.environmentSystem.setMode('grassland');
+            if (e.key === '2') this.environmentSystem.setMode('wasteland');
+            if (e.key === '3') this.environmentSystem.setMode('hell');
         });
 
         // Decoration System
@@ -148,7 +148,7 @@ export class Game {
                     color: 0xff5555,
                     radius: 0.8,
                     maxHp: 30,
-                    moveSpeed: 5,
+                    moveSpeed: 7,
                     chaseRange: 25,
                     loseInterestRange: 35,
                     attackRange: 2.0,

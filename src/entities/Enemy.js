@@ -25,6 +25,9 @@ export class Enemy extends Character {
             attackRange = 2,
             attackDamage = 5,
             attackCooldown = 1.0,
+            // 히스테리시스: 공격 진입/이탈 범위
+            attackEnterRange = attackRange - 0.5,   // AI가 공격 상태로 전환되는 거리
+            attackExitRange = attackRange + 1.5       // AI가 공격을 중단하고 추적으로 돌아가는 거리
         } = options;
 
         this.maxHp = maxHp;
@@ -32,7 +35,11 @@ export class Enemy extends Character {
 
         this.moveSpeed = moveSpeed;
         this.chaseRange = chaseRange;
+        // 실제 데미지 판정용 기본 attackRange는 그대로 유지 (CombatSystem 사용)
         this.attackRange = attackRange;
+        // AI용 진입/이탈 거리 (히스테리시스)
+        this.attackEnterRange = attackEnterRange;
+        this.attackExitRange = attackExitRange;
         this.attackDamage = attackDamage;
         this.attackCooldown = attackCooldown;
 
@@ -43,7 +50,7 @@ export class Enemy extends Character {
         this.state = 'idle';  // 기본 상태는 idle
         this.isDying = false;  // 죽음 상태 플래그
         this.spawnTime = 0;  // spawn 후 경과 시간
-        this.spawnDelay = 1.0;  // 1초 대기 후 chase 시작
+        this.spawnDelay = 0.1;  // 0.1초 대기 후 chase 시작
         this.previousState = 'idle';  // Hit 상태 전의 상태 저장
         this.isAttackActive = false;  // 공격 판정 활성화 플래그 (애니메이션 50% 시점에만 true)
         this.attackSoundPlayed = false;  // 공격 사운드 재생 여부 (중복 재생 방지)
@@ -233,7 +240,7 @@ export class Enemy extends Character {
                 // spawn 1초 후 무조건 행동 시작
                 if (this.spawnTime >= this.spawnDelay) {
                     // 플레이어가 공격 범위 안에 있으면 바로 attack
-                    if (distance <= this.attackRange) {
+                    if (distance <= this.attackEnterRange) {
                         this.state = 'attack';
                         this.isAttackActive = false;  // 공격 시작 시 비활성화
                         this.attackStarted = true;  // 새로운 공격 시작 플래그
@@ -249,7 +256,8 @@ export class Enemy extends Character {
                 break;
 
             case 'chase':
-                if (distance <= this.attackRange) {
+                // 진입 범위(enter)를 사용
+                if (distance <= this.attackEnterRange) {
                     this.state = 'attack';
                     this.isAttackActive = false;  // 공격 시작 시 비활성화
                     this.attackStarted = true;  // 새로운 공격 시작 플래그
@@ -283,7 +291,8 @@ export class Enemy extends Character {
                     }
                 }
 
-                if (distance > this.attackRange) {
+                // 이탈 범위(exit)를 사용: exit 범위를 넘기면 공격 중단
+                if (distance > this.attackExitRange) {
                     this.state = 'chase';
                     this.isAttackActive = false;  // 공격 종료 시 비활성화
                 }
@@ -364,8 +373,11 @@ export class Enemy extends Character {
             newAction.clampWhenFinished = true;
 
             // Hit 애니메이션은 1.5배 빠르게 재생
+            // Punch, Kick 애니메이션은 2배 빠르게 재생
             if (name === 'Hit') {
                 newAction.setEffectiveTimeScale(1.5);
+            } else if (name === 'Punch' || name === 'Kick') {
+                newAction.setEffectiveTimeScale(3.0);
             } else {
                 newAction.setEffectiveTimeScale(1.3);
             }

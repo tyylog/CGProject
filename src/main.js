@@ -1,7 +1,7 @@
 // src/main.js
 import { Game } from './core/Game.js';
 
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 
 if (DEBUG_MODE) {
     document.getElementById("start-screen")?.remove();
