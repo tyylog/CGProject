@@ -104,51 +104,49 @@ export class UISystem {
         // 🧪 포션 UI (좌측 하단: 슬롯 + 아이콘 + 숫자)
         // ============================
         this.potionContainer = document.createElement('div');
-        Object.assign(this.potionContainer.style, {
-        position: 'relative',
-        width: '72px',     // 슬롯 크기
-        height: '72px',
-        background: '#7a7a7a',   // 회색 슬롯
-        border: '3px solid rgba(255,255,255,0.35)',
-        borderRadius: '6px',
-        boxShadow: '0 0 10px rgba(0,0,0,0.35)',
-        zIndex: 999,
+            Object.assign(this.potionContainer.style, {
+            position: 'relative',
+            width: '72px',     // 슬롯 크기
+            height: '72px',
+            background: '#7a7a7a',   // 회색 슬롯
+            border: '3px solid rgba(255,255,255,0.35)',
+            borderRadius: '6px',
+            boxShadow: '0 0 10px rgba(0,0,0,0.35)',
+            zIndex: 999,
 
-        pointerEvents: 'none',
+            pointerEvents: 'none',
         });
 
         // 아이콘 이미지 (중앙)
         this.potionIcon = document.createElement('img');
         this.potionIcon.src = './assets/images/potion.png';
         Object.assign(this.potionIcon.style, {
-        position: 'absolute',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%) rotate(30deg)',
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%) rotate(30deg)',
 
-        width: '52px',     // 아이콘 크기
-        height: '52px',
-        objectFit: 'contain',
+            width: '52px',     // 아이콘 크기
+            height: '52px',
+            objectFit: 'contain',
 
-        // 픽셀 느낌 원하면 켜기
-        imageRendering: 'pixelated',
+            // 픽셀 느낌 원하면 켜기
+            imageRendering: 'pixelated',
 
-        filter: 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
+            filter: 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
         });
 
         // 우하단 숫자
         this.potionCountText = document.createElement('div');
         Object.assign(this.potionCountText.style, {
-        position: 'absolute',
-        right: '6px',
-        bottom: '4px',
+            position: 'absolute',
+            right: '6px',
+            bottom: '4px',
 
-        color: '#ffffff',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '22px',
-        fontWeight: '900',
-
-        // 숫자 가독성(외곽선 느낌)
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '22px',
+            fontWeight: '900',
         });
 
         this.potionContainer.appendChild(this.potionIcon);
@@ -329,7 +327,8 @@ export class UISystem {
 
         if (this._phaseToastTimer) clearTimeout(this._phaseToastTimer);
         this._phaseToastTimer = setTimeout(() => {
-        this.phaseToast.style.opacity = '0';
-        }, 2500); // 2.5초 보여주고 사라짐
+            this.phaseToast.style.opacity = '0';
+            }, 2500 // 2.5초 보여주고 사라짐
+        );
     }
 }

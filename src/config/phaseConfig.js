@@ -1,4 +1,3 @@
-// src/config/phaseConfig.js
 export const PHASE_CONFIGS = [
   {
     spawnInterval: 0.9,
