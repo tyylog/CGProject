@@ -44,16 +44,18 @@ export class InputController {
         });
 
         window.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            if (key in this.keys) this.keys[key] = true;
-            if (e.key === 'Shift') this.keys.shift = true;
-            if (e.code === 'Space') this.keys.space = true;
+        const key = e.key.toLowerCase();
 
-            // 🔹 포션: 1번 키 "누른 순간"만 기록
-            if (e.key === '1') {
-                this.keyPresses.add('1');   // Game이 이걸 보고 usePotion() 호출
-            }
+        if (key in this.keys) this.keys[key] = true;
+        if (e.key === 'Shift') this.keys.shift = true;
+        if (e.code === 'Space') this.keys.space = true;
+
+        // ✅ Shift 눌러도 항상 동일하게 들어오는 code로 처리
+        if (e.code === 'Digit1' || e.code === 'Numpad1') {
+            this.keyPresses.add('potion');   // 토큰은 마음대로
+        }
         });
+
 
         window.addEventListener('keyup', (e) => {
             const key = e.key.toLowerCase();

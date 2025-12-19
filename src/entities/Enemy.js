@@ -35,8 +35,10 @@ export class Enemy extends Character {
 
         this.moveSpeed = moveSpeed;
         this.chaseRange = chaseRange;
+
         // 실제 데미지 판정용 기본 attackRange는 그대로 유지 (CombatSystem 사용)
         this.attackRange = attackRange;
+
         // AI용 진입/이탈 거리 (히스테리시스)
         this.attackEnterRange = attackEnterRange;
         this.attackExitRange = attackExitRange;
@@ -54,6 +56,7 @@ export class Enemy extends Character {
         this.previousState = 'idle';  // Hit 상태 전의 상태 저장
         this.isAttackActive = false;  // 공격 판정 활성화 플래그 (애니메이션 50% 시점에만 true)
         this.attackSoundPlayed = false;  // 공격 사운드 재생 여부 (중복 재생 방지)
+        this.killCounted = false;  // 킬 카운트가 이미 반영되었는지
 
         // 애니메이션 관련
         this.mixer = null;

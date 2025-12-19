@@ -54,17 +54,51 @@ export class UISystem {
         this.staminaText.style.marginBottom = '10px';
 
         // ============================
-        // killCount + 레벨
+        // score 텍스트 (우측 상단)
         // ============================
-        this.killText = document.createElement('div');
-        this.killText.style.fontSize = '14px';
-        this.killText.style.marginBottom = '10px';
+        this.scoreTopText = document.createElement('div');
+        this.scoreTopText.style.position = 'fixed';
+        this.scoreTopText.style.top = '10px';
+        this.scoreTopText.style.right = '20px';
+
+        this.scoreTopText.style.fontSize = '32px';
+        this.scoreTopText.style.fontWeight = 'bold';
+        this.scoreTopText.style.letterSpacing = '2px';
+        this.scoreTopText.style.fontFamily = 'monospace';
+        this.scoreTopText.style.color = '#ffffff';
+        this.scoreTopText.style.textShadow = '0 0 10px rgba(0,0,0,0.9)';
+        this.scoreTopText.style.zIndex = '1000';
+
+        // 배경(optional, TIME이랑 통일)
+        this.scoreTopText.style.background = 'rgba(0,0,0,0.4)';
+        this.scoreTopText.style.padding = '6px 14px';
+        this.scoreTopText.style.borderRadius = '6px';
+
+        this.scoreTopText.textContent = 'SCORE: 0';
+
+        document.body.appendChild(this.scoreTopText);
 
         // ============================
         // 경과 시간
         // ============================
         this.timeText = document.createElement('div');
         this.timeText.style.fontSize = '14px';
+
+        this.timeText.style.position = 'fixed';
+        this.timeText.style.top = '10px';
+        this.timeText.style.left = '50%';
+        this.timeText.style.transform = 'translateX(-50%)';
+
+        this.timeText.style.fontSize = '32px';
+        this.timeText.style.fontWeight = 'bold';
+        this.timeText.style.letterSpacing = '2px';
+        this.timeText.style.textShadow = '0 0 10px rgba(0,0,0,0.9)';
+        this.timeText.style.zIndex = '1000';
+
+        this.timeText.style.fontFamily = 'monospace';
+        this.timeText.style.background = 'rgba(0,0,0,0.4)';
+        this.timeText.style.padding = '6px 14px';
+        this.timeText.style.borderRadius = '6px';
 
         // ============================
         // 🧪 포션 UI (좌측 하단: 슬롯 + 아이콘 + 숫자)
@@ -90,7 +124,7 @@ export class UISystem {
         position: 'absolute',
         left: '50%',
         top: '50%',
-        transform: 'translate(-50%, -50%) rotate(40deg)',
+        transform: 'translate(-50%, -50%) rotate(30deg)',
 
         width: '52px',     // 아이콘 크기
         height: '52px',
@@ -143,7 +177,6 @@ export class UISystem {
         this.root.appendChild(this.staminaContainer);
         this.root.appendChild(this.hpText);
         this.root.appendChild(this.potionContainer);
-        this.root.appendChild(this.killText);
         this.root.appendChild(this.timeText);
 
         // 디버그 모드 패널
@@ -160,7 +193,6 @@ export class UISystem {
      * @param {number} data.stamina
      * @param {number} data.maxStamina
      * @param {number} data.killCount
-     * @param {number} data.level
      * @param {number} data.elapsedTime  (초 단위)
      * @param {number} data.potionCount  (소지한 포션 개수)
      * @param {object} debugInfo  디버그 정보 객체
@@ -175,7 +207,6 @@ export class UISystem {
             stamina = 100,
             maxStamina = 100,
             killCount = 0,
-            level = 1,
             elapsedTime = 0,
             potionCount = 0,
             debugInfo,
@@ -195,14 +226,17 @@ export class UISystem {
         // STAMINA 텍스트
         this.staminaText.textContent = `STA: ${Math.floor(stamina)} / ${maxStamina}`;
 
-        // EXP + 레벨
-        this.killText.textContent = `LV ${level} | KILL: ${killCount}`;
+        // score 텍스트
+        const timeScore = Math.floor(elapsedTime) * 100; // 1초마다 +100
+        const killScore = killCount * 200;               // 킬당 +200 (원하면 수정)
+        this.score = killScore + timeScore;
+        this.scoreTopText.textContent = `SCORE: ${this.score}`;
 
         // 시간 표시 (MM:SS)
         const t = Math.floor(elapsedTime);
         const min = Math.floor(t / 60);
         const sec = (t % 60).toString().padStart(2, '0');
-        this.timeText.textContent = `Time: ${min}:${sec}`;
+        this.timeText.textContent = `${min}:${sec}`;
 
         // 🧪 포션 개수 텍스트 갱신
         if (this.potionCountText) {

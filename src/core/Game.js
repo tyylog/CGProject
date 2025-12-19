@@ -274,7 +274,6 @@ export class Game {
                 stamina: this.player.stamina ?? 100,
                 maxStamina: this.player.maxStamina ?? 100,
                 killCount: this.killCount ?? 0,
-                level: this.player.level ?? 1,
                 elapsedTime: this.elapsedTime,
                 potionCount: this.player.potionCount ?? 0,
             });
@@ -292,17 +291,9 @@ export class Game {
         this.player.update(delta, this.input);
 
         // 포션 사용 처리
-        if (this.input.keyPresses.has('1')) {
-            if (this.player) {
-                const used = this.player.usePotion();
-                if (used) {
-                    console.log('Potion used! Remaining:', this.player.potionCount);
-                } else {
-                    console.log('Potion use failed (no potions or dead)');
-                }
-            }
-            // 한 번 처리했으면 이번 프레임에서 소비
-            this.input.keyPresses.delete('1');
+        if (this.input.keyPresses.has('potion')) {
+            this.player.usePotion();
+            this.input.keyPresses.delete('potion');
         }
 
         // 플레이어는 정해진 바운더리 내에 존재
@@ -420,7 +411,6 @@ export class Game {
     handleEnemyDeath(enemy) {
         // 1) 킬 카운트 증가
         this.killCount += 1;
-        console.log('Kill count:', this.killCount);
 
         // 2) 씬에서 메쉬 제거
         if (enemy.mesh) {
