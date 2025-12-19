@@ -38,7 +38,7 @@ export class UISystem {
         // ============================
         this.staminaContainer = document.createElement('div');
         this.staminaContainer.style.width = '360px';
-        this.staminaContainer.style.height = '6px';
+        this.staminaContainer.style.height = '4px';
         this.staminaContainer.style.border = '2px solid white';
         this.staminaContainer.style.background = 'rgba(0,0,0,0.4)';
         this.staminaContainer.style.marginBottom = '6px';
@@ -66,14 +66,64 @@ export class UISystem {
         this.timeText = document.createElement('div');
         this.timeText.style.fontSize = '14px';
 
-        // root에 추가
-        this.root.appendChild(this.hpContainer);
-        this.root.appendChild(this.staminaContainer);
-        this.root.appendChild(this.hpText);
-        this.root.appendChild(this.killText);
-        this.root.appendChild(this.timeText);
+        // ============================
+        // 🧪 포션 UI (좌측 하단: 슬롯 + 아이콘 + 숫자)
+        // ============================
+        this.potionContainer = document.createElement('div');
+        Object.assign(this.potionContainer.style, {
+        position: 'relative',
+        width: '72px',     // 슬롯 크기
+        height: '72px',
+        background: '#7a7a7a',   // 회색 슬롯
+        border: '3px solid rgba(255,255,255,0.35)',
+        borderRadius: '6px',
+        boxShadow: '0 0 10px rgba(0,0,0,0.35)',
+        zIndex: 999,
 
+        pointerEvents: 'none',
+        });
+
+        // 아이콘 이미지 (중앙)
+        this.potionIcon = document.createElement('img');
+        this.potionIcon.src = './assets/images/potion.png';
+        Object.assign(this.potionIcon.style, {
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%) rotate(40deg)',
+
+        width: '52px',     // 아이콘 크기
+        height: '52px',
+        objectFit: 'contain',
+
+        // 픽셀 느낌 원하면 켜기
+        imageRendering: 'pixelated',
+
+        filter: 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
+        });
+
+        // 우하단 숫자
+        this.potionCountText = document.createElement('div');
+        Object.assign(this.potionCountText.style, {
+        position: 'absolute',
+        right: '6px',
+        bottom: '4px',
+
+        color: '#ffffff',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '22px',
+        fontWeight: '900',
+
+        // 숫자 가독성(외곽선 느낌)
+        });
+
+        this.potionContainer.appendChild(this.potionIcon);
+        this.potionContainer.appendChild(this.potionCountText);
+
+        // ============================
         // 게임 오버 텍스트
+        // ============================
+
         this.gameOverText = document.createElement('div');
         this.gameOverText.style.position = 'fixed';
         this.gameOverText.style.top = '50%';
@@ -87,6 +137,14 @@ export class UISystem {
         this.gameOverText.textContent = 'GAME OVER';
 
         document.body.appendChild(this.gameOverText);
+
+        // root에 추가
+        this.root.appendChild(this.hpContainer);
+        this.root.appendChild(this.staminaContainer);
+        this.root.appendChild(this.hpText);
+        this.root.appendChild(this.potionContainer);
+        this.root.appendChild(this.killText);
+        this.root.appendChild(this.timeText);
 
         // 디버그 모드 패널
         this.debugMode = DEBUG_MODE;
@@ -104,6 +162,7 @@ export class UISystem {
      * @param {number} data.killCount
      * @param {number} data.level
      * @param {number} data.elapsedTime  (초 단위)
+     * @param {number} data.potionCount  (소지한 포션 개수)
      * @param {object} debugInfo  디버그 정보 객체
      */
     update(data) {
@@ -118,6 +177,7 @@ export class UISystem {
             killCount = 0,
             level = 1,
             elapsedTime = 0,
+            potionCount = 0,
             debugInfo,
         } = data;
 
@@ -143,6 +203,11 @@ export class UISystem {
         const min = Math.floor(t / 60);
         const sec = (t % 60).toString().padStart(2, '0');
         this.timeText.textContent = `Time: ${min}:${sec}`;
+
+        // 🧪 포션 개수 텍스트 갱신
+        if (this.potionCountText) {
+            this.potionCountText.textContent = `${potionCount}`;
+        }
 
         // 🔹 디버그 패널 갱신
         if (this.debugMode && this.debugEl && debugInfo) {

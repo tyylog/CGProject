@@ -52,6 +52,11 @@ export class Player extends Character {
         this.staminaRegen = 15;    // 초당 회복량
         this.staminaUse = 25;      // 초당 소모량
 
+        // 체력 포션 관련
+        this.potionCount = 3;   // 기본 3개 (또는 0)
+        this.potionHealAmount = 40;   // 물약 회복량
+        this.potionStaminaAmount = 50; // 스태미너 회복량
+
         // 달리기 온/오프 문턱
         this.runStartThreshold = 10; // 이 이상이면 달리기 시작 가능
         this.runStopThreshold  = 0;  // 이 이하면 강제 걷기
@@ -448,7 +453,27 @@ export class Player extends Character {
         }
     }
 
-    getStaminaRatio() {
-        return this.stamina / this.maxStamina;
+    usePotion() {
+        if (this.potionCount <= 0) return false;
+        if (this.isDying) return false;
+
+        this.potionCount--;
+
+        // HP 회복
+        this.hp = Math.min(this.maxHp, this.hp + this.potionHealAmount);
+
+        // 스태미너 회복
+        this.stamina = Math.min(this.maxStamina, this.stamina + this.potionStaminaAmount);
+
+        // 회복 사운드 넣으려면 여기에
+        // if (this.soundSystem) {
+        //     this.soundSystem.playSFX('potion');
+        // }
+
+        return true; // 성공
+    }
+
+    addPotion(count = 1) {
+        this.potionCount += count;
     }
 }

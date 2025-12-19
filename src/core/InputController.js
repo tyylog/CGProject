@@ -13,6 +13,9 @@ export class InputController {
             space: false,
         };
 
+        // 🔹 한 번만 소비하는 키 입력들 (포션 같은 것)
+        this.keyPresses = new Set();
+
         this.mouseButtons = {
             left: false,
             right: false,
@@ -45,6 +48,11 @@ export class InputController {
             if (key in this.keys) this.keys[key] = true;
             if (e.key === 'Shift') this.keys.shift = true;
             if (e.code === 'Space') this.keys.space = true;
+
+            // 🔹 포션: 1번 키 "누른 순간"만 기록
+            if (e.key === '1') {
+                this.keyPresses.add('1');   // Game이 이걸 보고 usePotion() 호출
+            }
         });
 
         window.addEventListener('keyup', (e) => {

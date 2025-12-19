@@ -276,6 +276,7 @@ export class Game {
                 killCount: this.killCount ?? 0,
                 level: this.player.level ?? 1,
                 elapsedTime: this.elapsedTime,
+                potionCount: this.player.potionCount ?? 0,
             });
             this.renderer.render(this.scene, this.camera);
             requestAnimationFrame(this.animate);
@@ -289,6 +290,20 @@ export class Game {
 
         // 플레이어 업데이트
         this.player.update(delta, this.input);
+
+        // 포션 사용 처리
+        if (this.input.keyPresses.has('1')) {
+            if (this.player) {
+                const used = this.player.usePotion();
+                if (used) {
+                    console.log('Potion used! Remaining:', this.player.potionCount);
+                } else {
+                    console.log('Potion use failed (no potions or dead)');
+                }
+            }
+            // 한 번 처리했으면 이번 프레임에서 소비
+            this.input.keyPresses.delete('1');
+        }
 
         // 플레이어는 정해진 바운더리 내에 존재
         this._clampPlayerToGround();
@@ -317,10 +332,6 @@ export class Game {
             this.environmentSystem.update(delta);
         }
 
-        // decoration 갱신
-        if (this.decorationSystem) {
-            this.decorationSystem.update(delta);
-        }
 
         // debug 정보 구성
         const bounds = this.environmentSystem.getGroundBounds();
@@ -354,6 +365,7 @@ export class Game {
                 killCount: this.killCount ?? 0,
                 level: this.player.level ?? 1,
                 elapsedTime: this.elapsedTime,
+                potionCount: this.player.potionCount ?? 0,
                 debugInfo,  // 디버그 정보 전달
             });
         }
