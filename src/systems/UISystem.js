@@ -18,7 +18,7 @@ export class UISystem {
         // HP 바
         // ============================
         this.hpContainer = document.createElement('div');
-        this.hpContainer.style.width = '240px';
+        this.hpContainer.style.width = '360px';
         this.hpContainer.style.height = '18px';
         this.hpContainer.style.border = '2px solid white';
         this.hpContainer.style.background = 'rgba(0,0,0,0.4)';
@@ -32,6 +32,26 @@ export class UISystem {
         this.hpText = document.createElement('div');
         this.hpText.style.fontSize = '14px';
         this.hpText.style.marginBottom = '10px';
+
+        // ============================
+        // STAMINA 바
+        // ============================
+        this.staminaContainer = document.createElement('div');
+        this.staminaContainer.style.width = '360px';
+        this.staminaContainer.style.height = '9px';
+        this.staminaContainer.style.border = '2px solid white';
+        this.staminaContainer.style.background = 'rgba(0,0,0,0.4)';
+        this.staminaContainer.style.marginBottom = '6px';
+
+        this.staminaBar = document.createElement('div');
+        this.staminaBar.style.height = '100%';
+        this.staminaBar.style.width = '100%';
+        this.staminaBar.style.background = '#e8eef1ff';
+        this.staminaContainer.appendChild(this.staminaBar);
+
+        this.staminaText = document.createElement('div');
+        this.staminaText.style.fontSize = '14px';
+        this.staminaText.style.marginBottom = '10px';
 
         // ============================
         // killCount + 레벨
@@ -49,6 +69,8 @@ export class UISystem {
         // root에 추가
         this.root.appendChild(this.hpContainer);
         this.root.appendChild(this.hpText);
+        this.root.appendChild(this.staminaContainer);
+        this.root.appendChild(this.staminaText);
         this.root.appendChild(this.killText);
         this.root.appendChild(this.timeText);
 
@@ -78,6 +100,8 @@ export class UISystem {
      * @param {object} data
      * @param {number} data.hp
      * @param {number} data.maxHp
+     * @param {number} data.stamina
+     * @param {number} data.maxStamina
      * @param {number} data.killCount
      * @param {number} data.level
      * @param {number} data.elapsedTime  (초 단위)
@@ -86,14 +110,31 @@ export class UISystem {
     update(data) {
         if (!data) return;
 
-        const { hp = 0, maxHp = 100, killCount = 0, level = 1, elapsedTime = 0, debugInfo, } = data;
+        // stamina/maxStamina 추가 (기본값 지정)
+        const {
+            hp = 0,
+            maxHp = 100,
+            stamina = 100,
+            maxStamina = 100,
+            killCount = 0,
+            level = 1,
+            elapsedTime = 0,
+            debugInfo,
+        } = data;
 
         // HP 바 비율 반영
-        const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
-        this.hpBar.style.width = (ratio * 100) + '%';
+        const hpRatio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
+        this.hpBar.style.width = (hpRatio * 100) + '%';
 
         // HP 텍스트
         this.hpText.textContent = `HP: ${hp} / ${maxHp}`;
+
+        // STAMINA 바 비율 반영
+        const stRatio = maxStamina > 0 ? Math.max(0, Math.min(1, stamina / maxStamina)) : 0;
+        this.staminaBar.style.width = (stRatio * 100) + '%';
+
+        // STAMINA 텍스트
+        this.staminaText.textContent = `STA: ${Math.floor(stamina)} / ${maxStamina}`;
 
         // EXP + 레벨
         this.killText.textContent = `LV ${level} | KILL: ${killCount}`;

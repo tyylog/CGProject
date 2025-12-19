@@ -79,7 +79,6 @@ export class CombatSystem {
     }
 
     _handleEnemyAttacks(delta, player, enemies) {
-        const playerPos = player.mesh.position;
 
         enemies.forEach(enemy => {
             if (!enemy.mesh || (enemy.isDead && enemy.isDead())) return;

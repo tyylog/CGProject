@@ -271,6 +271,8 @@ export class Game {
             this.uiSystem.update({
                 hp: this.player.hp ?? 0,
                 maxHp: this.player.maxHp ?? 100,
+                stamina: this.player.stamina ?? 100,
+                maxStamina: this.player.maxStamina ?? 100,
                 killCount: this.killCount ?? 0,
                 level: this.player.level ?? 1,
                 elapsedTime: this.elapsedTime,
@@ -347,6 +349,8 @@ export class Game {
             this.uiSystem.update({
                 hp: this.player.hp ?? 0,
                 maxHp: this.player.maxHp ?? 100,
+                stamina: this.player.stamina ?? 100,
+                maxStamina: this.player.maxStamina ?? 100,
                 killCount: this.killCount ?? 0,
                 level: this.player.level ?? 1,
                 elapsedTime: this.elapsedTime,
