@@ -44,6 +44,9 @@ export class Player extends Character {
         this.rotationSpeed = 10;  // 회전 속도 (높을수록 빠름)
         this.isAttacking = false;  // 공격 중 플래그 (이동 제한용)
         this.isAttackActive = false;  // 실제 공격 판정 활성화 플래그
+        this.isHeavyAttack = false;  // 강공격 여부 (우클릭)
+        this.heavyAttackCooldown = 3.0;  // 강공격 쿨타임 (초)
+        this.heavyAttackTimer = 0;  // 현재 쿨타임 타이머
         this.isDying = false;  // 죽음 애니메이션 재생 중 플래그
 
         // 스태미너 관련
@@ -257,6 +260,11 @@ export class Player extends Character {
             return;
         }
 
+        // 강공격 쿨타임 감소
+        if (this.heavyAttackTimer > 0) {
+            this.heavyAttackTimer -= delta;
+        }
+
         // yaw/pitch는 input 쪽에서 업데이트됨
         this.yaw = input.yaw;
         this.pitch = input.pitch;
@@ -340,7 +348,7 @@ export class Player extends Character {
         this._updateAnimation(input, isMoving);
 
         this.updateCollider();
-        this.updateAttackHitboxCollider();
+        // attackHitboxCollider는 CombatSystem에서 필요할 때만 업데이트
     }
 
 
@@ -409,6 +417,7 @@ export class Player extends Character {
             // 이미 공격 중이 아닐 때만 새로운 공격 시작
             this.isAttacking = true;  // 이동 제한
             this.isAttackActive = true;  // 공격 판정 활성화
+            this.isHeavyAttack = false;  // 일반 공격
             this.playAnimation('MouseLeft', false);
             // 공격 사운드 재생
             if (this.soundSystem) {
@@ -416,10 +425,12 @@ export class Player extends Character {
             }
             return;
         }
-        if (input.mouseButtons.right && !this.isAttacking) {
-            // 이미 공격 중이 아닐 때만 새로운 공격 시작
+        if (input.mouseButtons.right && !this.isAttacking && this.heavyAttackTimer <= 0) {
+            // 이미 공격 중이 아니고 쿨타임이 끝났을 때만 강공격 시작
             this.isAttacking = true;  // 이동 제한
             this.isAttackActive = true;  // 공격 판정 활성화
+            this.isHeavyAttack = true;  // 강공격
+            this.heavyAttackTimer = this.heavyAttackCooldown;  // 쿨타임 시작
             this.playAnimation('MouseRight', false);
             // 공격 사운드 재생
             if (this.soundSystem) {
