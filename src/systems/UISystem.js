@@ -275,7 +275,7 @@ export class UISystem {
         this.root.appendChild(this.hpContainer);
         this.root.appendChild(this.staminaContainer);
         this.root.appendChild(this.hpText);
-        this.root.appendChild(this.potionContainer);
+        this.root.appendChild(this.skillContainer);
         this.root.appendChild(this.timeText);
 
         // 디버그 모드 패널
@@ -294,6 +294,8 @@ export class UISystem {
      * @param {number} data.killCount
      * @param {number} data.elapsedTime  (초 단위)
      * @param {number} data.potionCount  (소지한 포션 개수)
+     * @param {number} data.heavyAttackCooldown  (강공격 최대 쿨타임)
+     * @param {number} data.heavyAttackTimer  (강공격 현재 쿨타임)
      * @param {object} debugInfo  디버그 정보 객체
      */
     update(data) {
@@ -308,6 +310,8 @@ export class UISystem {
             killCount = 0,
             elapsedTime = 0,
             potionCount = 0,
+            heavyAttackCooldown = 3.0,
+            heavyAttackTimer = 0,
             debugInfo,
         } = data;
 
@@ -340,6 +344,23 @@ export class UISystem {
         // 🧪 포션 개수 텍스트 갱신
         if (this.potionCountText) {
             this.potionCountText.textContent = `${potionCount}`;
+        }
+
+        // 🔥 강공격 쿨타임 UI 갱신
+        if (this.heavyAttackOverlay && this.heavyAttackCooldownText) {
+            if (heavyAttackTimer > 0) {
+                // 쿨타임 중: 오버레이 높이를 쿨타임 비율만큼 표시
+                const cooldownRatio = heavyAttackTimer / heavyAttackCooldown;
+                this.heavyAttackOverlay.style.height = (cooldownRatio * 100) + '%';
+
+                // 남은 시간 텍스트 표시 (소수점 첫째자리까지)
+                this.heavyAttackCooldownText.textContent = heavyAttackTimer.toFixed(1);
+                this.heavyAttackCooldownText.style.display = 'block';
+            } else {
+                // 쿨타임 끝: 오버레이 숨김
+                this.heavyAttackOverlay.style.height = '0%';
+                this.heavyAttackCooldownText.style.display = 'none';
+            }
         }
 
         // 🔹 디버그 패널 갱신

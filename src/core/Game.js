@@ -376,6 +376,8 @@ export class Game {
                 level: this.player.level ?? 1,
                 elapsedTime: this.elapsedTime,
                 potionCount: this.player.potionCount ?? 0,
+                heavyAttackCooldown: this.player.heavyAttackCooldown ?? 3.0,
+                heavyAttackTimer: this.player.heavyAttackTimer ?? 0,
                 debugInfo,  // 디버그 정보 전달
             });
         }
