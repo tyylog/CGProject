@@ -1,4 +1,6 @@
 // src/systems/UISystem.js
+import { LEADERBOARD_BASE_URL, getOrCreatePlayerId, getOrAskNickname } from "../config/leaderboardConfig.js";
+
 export class UISystem {
     constructor(DEBUG_MODE = false) {
         // --- 루트 컨테이너 ---
@@ -283,6 +285,125 @@ export class UISystem {
         if (this.debugMode) {
             this._setupDebugPanel();
         }
+
+        // 리더보드 관련
+        this.game = null;
+        this.gameOverOverlay = null;
+
+        // ============================
+        // ✅ Game Over Overlay (입력 가능)
+        // ============================
+        this.gameOverOverlay = document.createElement('div');
+        Object.assign(this.gameOverOverlay.style, {
+            position: 'fixed',
+            inset: '0',
+            background: 'rgba(0,0,0,0.65)',
+            display: 'none',
+            zIndex: 5000,
+            pointerEvents: 'auto', // ✅ 얘만 입력 받음
+        });
+
+        this.gameOverPanel = document.createElement('div');
+        Object.assign(this.gameOverPanel.style, {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '520px',
+            maxWidth: '90vw',
+            padding: '22px 22px',
+            borderRadius: '14px',
+            background: 'rgba(0,0,0,0.55)',
+            boxShadow: '0 0 18px rgba(0,0,0,0.8)',
+            color: '#fff',
+            fontFamily: 'monospace',
+        });
+
+        this.gameOverTitle = document.createElement('div');
+        this.gameOverTitle.textContent = 'GAME OVER';
+        Object.assign(this.gameOverTitle.style, {
+            fontSize: '56px',
+            fontWeight: '900',
+            textAlign: 'center',
+            marginBottom: '12px',
+            color: '#ff4444',
+            textShadow: '0 0 14px rgba(0,0,0,0.9)',
+        });
+
+        this.finalScoreText = document.createElement('div');
+        Object.assign(this.finalScoreText.style, {
+            textAlign: 'center',
+            fontSize: '24px',
+            marginBottom: '14px',
+        });
+
+        this.nicknameRow = document.createElement('div');
+        Object.assign(this.nicknameRow.style, {
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '12px',
+        });
+
+        this.nicknameInput = document.createElement('input');
+        this.nicknameInput.placeholder = 'nickname (1~20)';
+        Object.assign(this.nicknameInput.style, {
+            flex: '1',
+            padding: '10px 12px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.25)',
+            background: 'rgba(255,255,255,0.08)',
+            color: '#fff',
+            outline: 'none',
+        });
+
+        this.submitBtn = document.createElement('button');
+        this.submitBtn.textContent = 'SUBMIT';
+        Object.assign(this.submitBtn.style, {
+            padding: '10px 14px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.25)',
+            background: 'rgba(255,255,255,0.12)',
+            color: '#fff',
+            cursor: 'pointer',
+        });
+
+        this.retryBtn = document.createElement('button');
+        this.retryBtn.textContent = 'RETRY';
+        Object.assign(this.retryBtn.style, {
+            width: '100%',
+            marginTop: '10px',
+            padding: '12px 14px',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.25)',
+            background: 'rgba(255,255,255,0.12)',
+            color: '#fff',
+            fontSize: '18px',
+            cursor: 'pointer',
+        });
+
+        this.leaderboardBox = document.createElement('div');
+        Object.assign(this.leaderboardBox.style, {
+            marginTop: '14px',
+            padding: '12px',
+            borderRadius: '12px',
+            background: 'rgba(0,0,0,0.35)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            fontSize: '16px',
+            whiteSpace: 'pre',
+            minHeight: '120px',
+        });
+
+        this.gameOverPanel.appendChild(this.gameOverTitle);
+        this.gameOverPanel.appendChild(this.finalScoreText);
+        this.nicknameRow.appendChild(this.nicknameInput);
+        this.nicknameRow.appendChild(this.submitBtn);
+        this.gameOverPanel.appendChild(this.nicknameRow);
+        this.gameOverPanel.appendChild(this.leaderboardBox);
+        this.gameOverPanel.appendChild(this.retryBtn);
+        this.gameOverOverlay.appendChild(this.gameOverPanel);
+        document.body.appendChild(this.gameOverOverlay);
+
+
     }
 
     /**
@@ -388,11 +509,44 @@ export class UISystem {
 
     }
 
-    showGameOver() {
-        if (this.gameOverText) {
-            this.gameOverText.style.display = 'block';
+    async showGameOver({ score, killCount, elapsedTime }) {
+        // 포인터락 해제
+        if (document.pointerLockElement) document.exitPointerLock();
+        document.body.style.cursor = 'default';
+
+        const finalScore = Number(score) || 0;
+        this.finalScoreToSubmit = finalScore; // setGame()의 submitBtn에서 씀
+
+        // ✅ constructor에서 만든 overlay를 "제거하지 말고" 표시만 켜기
+        this.gameOverOverlay.style.display = 'block';
+
+        // 점수 표시
+        this.finalScoreText.textContent = `Score: ${finalScore}`;
+
+        // 닉네임(로컬/기본값) 세팅: getOrAskNickname이 input prompt 띄우는 방식이면 빼도 됨
+        const nickname = (getOrAskNickname?.() || '').trim();
+        if (nickname && this.nicknameInput) this.nicknameInput.value = nickname;
+
+        // 리더보드 먼저 로드
+        this.leaderboardBox.textContent = 'Loading leaderboard...';
+        try {
+            const top = await fetch(`${LEADERBOARD_BASE_URL}/api/leaderboard?limit=10`)
+            .then(r => {
+                if (!r.ok) throw new Error(`leaderboard HTTP ${r.status}`);
+                return r.json();
+            });
+
+            // 기존 _renderLeaderboard는 wrap 기반이라서 여기서는 박스에 직접 렌더
+            this.leaderboardBox.textContent = '';
+            top.forEach(r => {
+            this.leaderboardBox.textContent += `#${r.rank} ${r.nickname}  ${r.score}\n`;
+            });
+        } catch (e) {
+            console.error(e);
+            this.leaderboardBox.textContent = 'Leaderboard load failed.';
         }
     }
+
 
     _setupDebugPanel() {
         this.debugEl = document.createElement('div');
@@ -425,4 +579,65 @@ export class UISystem {
             }, 2500 // 2.5초 보여주고 사라짐
         );
     }
+
+    
+    setGame(game) {
+        this.game = game;
+
+        this.retryBtn.onclick = () => window.location.reload();
+
+        this.submitBtn.onclick = async () => {
+            const nickname = (this.nicknameInput.value || '').trim();
+            if (nickname.length < 1 || nickname.length > 20) {
+            this.leaderboardBox.textContent = '닉네임은 1~20 글자여야 합니다.';
+            return;
+            }
+
+            const playerId = getOrCreatePlayerId();
+            const score = this.finalScoreToSubmit ?? 0;
+
+            try {
+            this.leaderboardBox.textContent = 'Submitting...';
+
+            const res = await fetch(`${LEADERBOARD_BASE_URL}/api/score`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerId, nickname, score }),
+            });
+            if (!res.ok) throw new Error(`score HTTP ${res.status}`);
+            const j = await res.json();
+
+            // 제출 후 Top10 다시 로드
+            const top = await fetch(`${LEADERBOARD_BASE_URL}/api/leaderboard?limit=10`)
+                .then(r => {
+                if (!r.ok) throw new Error(`leaderboard HTTP ${r.status}`);
+                return r.json();
+                });
+
+            this._renderLeaderboardToBox(top);
+
+            } catch (e) {
+            console.error(e);
+            this.leaderboardBox.textContent = `Submit failed: ${e}`;
+            }
+        };
+
+        this.nicknameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.submitBtn.click();
+        });
+    }
+
+    _renderLeaderboardToBox(rows) {
+        this.leaderboardBox.textContent = '';
+        (rows || []).forEach(r => {
+            this.leaderboardBox.textContent += `#${r.rank} ${r.nickname}  ${r.score}\n`;
+        });
+    }
+
+    _escape(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[c]));
+    }
+
 }

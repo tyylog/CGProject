@@ -276,7 +276,7 @@ export class Game {
         }
 
         if (this.isGameOver) {
-            // 시간 멈추고 싶으면 elapsedTime 안 올리기
+        // 마지막 프레임 한번만 그려주고 끝 (정지 느낌)
             this.uiSystem.update({
                 hp: this.player.hp ?? 0,
                 maxHp: this.player.maxHp ?? 100,
@@ -286,9 +286,10 @@ export class Game {
                 elapsedTime: this.elapsedTime,
                 potionCount: this.player.potionCount ?? 0,
             });
+
             this.renderer.render(this.scene, this.camera);
-            requestAnimationFrame(this.animate);
-            return;
+            this.labelRenderer.render(this.scene, this.camera);
+            return; // ✅ RAF 재호출 안함 = 완전 정지
         }
 
         this.elapsedTime += delta;
@@ -435,16 +436,24 @@ export class Game {
 
         // 4) 필요하면 추가 연출 (드랍 아이템, 이펙트 등) 여기에
     }
-
     handlePlayerDeath() {
+        if (this.isGameOver) return;     // 중복 호출 방지
         this.isGameOver = true;
 
-        // UI에 게임오버 표시
+        // UI에 게임오버 표시 + 닉네임 입력 + 리더보드 요청
         if (this.uiSystem) {
-            this.uiSystem.showGameOver();
-        }
+            const finalScore = this.uiSystem.score ?? (
+            (Math.floor(this.elapsedTime) * 100) + (this.killCount * 200)
+            );
 
+            this.uiSystem.showGameOver({
+            score: finalScore,
+            killCount: this.killCount,
+            elapsedTime: this.elapsedTime,
+            });
+        }
     }
+
 
     _clampPlayerToGround() {
         if (!this.player || !this.player.mesh || !this.environmentSystem) return;
@@ -483,6 +492,11 @@ export class Game {
         if (this.player && nextIndex > 0) {
             this.player.addPotion(1);
         }
+    }
+
+    restart() {
+        // 페이지 리로드로 간단히 재시작
+        window.location.reload();
     }
 
 }

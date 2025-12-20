@@ -1,4 +1,4 @@
-// src/main.js
+// src/index.js
 import { Game } from './core/Game.js';
 
 const DEBUG_MODE = false;
@@ -9,3 +9,4 @@ if (DEBUG_MODE) {
 }
 
 const game = new Game({ debug: DEBUG_MODE});
+game.uiSystem.setGame(game);
