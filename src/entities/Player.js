@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Character } from './Character.js';
+import { SwordTrail } from '../effects/SwordTrail.js';
 
 export class Player extends Character {
     constructor(scene, ground, soundSystem = null, onBGMStopRequest = null) {
@@ -30,6 +31,12 @@ export class Player extends Character {
         // 공격 히트박스 참조
         this.attackHitbox = null;
         this.attackHitboxCollider = new THREE.Box3();
+
+        // 검 메쉬 참조
+        this.swordMesh = null;
+
+        // 검 궤적 효과
+        this.swordTrail = null;
 
         this.speed = 5;        // m/s
         this.runMultiplier = 2;
@@ -92,6 +99,16 @@ export class Player extends Character {
                         this.attackHitbox = child;
                         child.visible = false;
                         console.log('attackHitbox found and hidden');
+
+                        // 검 궤적 효과 초기화 (attackHitbox를 따라감)
+                        this.swordTrail = new SwordTrail(this.scene, this.attackHitbox);
+                        console.log('SwordTrail initialized with attackHitbox');
+                    }
+
+                    // sword 메쉬 찾아서 참조 저장
+                    if (child.name === 'sword') {
+                        this.swordMesh = child;
+                        console.log('sword mesh found:', child);
                     }
                 });
 
@@ -151,6 +168,11 @@ export class Player extends Character {
                         this.playAnimation('Idle', true);
                         this.isAttacking = false;
                         this.isAttackActive = false;
+
+                        // 검 궤적 정지
+                        if (this.swordTrail && (clipName === 'MouseLeft' || clipName === 'MouseRight')) {
+                            this.swordTrail.stop();
+                        }
                     }
                 });
 
@@ -252,6 +274,11 @@ export class Player extends Character {
         // 애니메이션 믹서 업데이트
         if (this.mixer) {
             this.mixer.update(delta);
+        }
+
+        // 검 궤적 업데이트
+        if (this.swordTrail) {
+            this.swordTrail.update(delta);
         }
 
         // 죽은 상태에서는 입력 처리 안 함
@@ -419,6 +446,10 @@ export class Player extends Character {
             this.isAttackActive = true;  // 공격 판정 활성화
             this.isHeavyAttack = false;  // 일반 공격
             this.playAnimation('MouseLeft', false);
+            // 검 궤적 시작
+            if (this.swordTrail) {
+                this.swordTrail.start();
+            }
             // 공격 사운드 재생
             if (this.soundSystem) {
                 this.soundSystem.playSFX('playerAttackLeft');
@@ -432,6 +463,10 @@ export class Player extends Character {
             this.isHeavyAttack = true;  // 강공격
             this.heavyAttackTimer = this.heavyAttackCooldown;  // 쿨타임 시작
             this.playAnimation('MouseRight', false);
+            // 검 궤적 시작
+            if (this.swordTrail) {
+                this.swordTrail.start();
+            }
             // 공격 사운드 재생
             if (this.soundSystem) {
                 this.soundSystem.playSFX('playerAttackRight');
