@@ -238,17 +238,17 @@ export class EnvironmentSystem {
                 wallBase.scale.set(wallScale, wallScale, wallScale);
                 cornerBase.scale.set(wallScale, wallScale, wallScale);
 
-                // 공통 그림자 옵션
-                const enableShadows = (obj) => {
+                // 🔥 그림자 최적화: 벽은 그림자를 받기만 하고 생성하지 않음
+                const setupWallShadows = (obj) => {
                     obj.traverse((c) => {
                         if (c.isMesh) {
-                            c.castShadow = true;
-                            c.receiveShadow = true;
+                            c.castShadow = false;    // 그림자 생성 안 함
+                            c.receiveShadow = true;  // 그림자는 받음
                         }
                     });
                 };
-                enableShadows(wallBase);
-                enableShadows(cornerBase);
+                setupWallShadows(wallBase);
+                setupWallShadows(cornerBase);
 
                 // 🔥 wall 한 조각의 "긴 축" 길이 측정
                 const tmpBox = new THREE.Box3().setFromObject(wallBase);

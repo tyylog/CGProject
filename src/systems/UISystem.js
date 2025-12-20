@@ -153,6 +153,79 @@ export class UISystem {
         this.potionContainer.appendChild(this.potionCountText);
 
         // ============================
+        // 🔥 강공격 쿨타임 UI (포션 옆)
+        // ============================
+        this.heavyAttackContainer = document.createElement('div');
+        Object.assign(this.heavyAttackContainer.style, {
+            position: 'relative',
+            width: '72px',
+            height: '72px',
+            background: '#7a7a7a',
+            border: '3px solid rgba(255,255,255,0.35)',
+            borderRadius: '6px',
+            boxShadow: '0 0 10px rgba(0,0,0,0.35)',
+            marginLeft: '10px',
+            zIndex: 999,
+            pointerEvents: 'none',
+        });
+
+        // 강공격 아이콘 (텍스트로 대체)
+        this.heavyAttackIcon = document.createElement('div');
+        Object.assign(this.heavyAttackIcon.style, {
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            fontSize: '32px',
+            fontWeight: 'bold',
+            color: '#ffcc00',
+            textShadow: '0 0 5px rgba(0,0,0,0.8)',
+        });
+        this.heavyAttackIcon.textContent = '⚔';
+
+        // 쿨타임 오버레이 (어둡게 덮음)
+        this.heavyAttackOverlay = document.createElement('div');
+        Object.assign(this.heavyAttackOverlay.style, {
+            position: 'absolute',
+            bottom: '0',
+            left: '0',
+            width: '100%',
+            height: '0%',
+            background: 'rgba(0,0,0,0.7)',
+            borderRadius: '3px',
+            transition: 'height 0.1s linear',
+        });
+
+        // 쿨타임 텍스트
+        this.heavyAttackCooldownText = document.createElement('div');
+        Object.assign(this.heavyAttackCooldownText.style, {
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '18px',
+            fontWeight: '900',
+            textShadow: '0 0 3px rgba(0,0,0,0.9)',
+            zIndex: '10',
+        });
+
+        this.heavyAttackContainer.appendChild(this.heavyAttackOverlay);
+        this.heavyAttackContainer.appendChild(this.heavyAttackIcon);
+        this.heavyAttackContainer.appendChild(this.heavyAttackCooldownText);
+
+        // 포션과 강공격을 담을 가로 컨테이너
+        this.skillContainer = document.createElement('div');
+        Object.assign(this.skillContainer.style, {
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+        });
+        this.skillContainer.appendChild(this.potionContainer);
+        this.skillContainer.appendChild(this.heavyAttackContainer);
+
+        // ============================
         // 게임 오버 텍스트
         // ============================
 

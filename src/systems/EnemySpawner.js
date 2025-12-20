@@ -1,5 +1,7 @@
 // src/systems/EnemySpawner.js
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { Enemy } from '../entities/Enemy.js';
 
 export class EnemySpawner {
@@ -40,6 +42,44 @@ export class EnemySpawner {
 
         // 🔥 Game이 넘겨줄 바운드 getter
         this.boundsProvider = null;
+
+        // 🔥 모델 캐싱용 (성능 최적화)
+        this.cachedModel = null;
+        this.cachedAnimations = null;
+        this.isModelLoaded = false;
+        this._modelLoadPromise = null;
+    }
+
+    /**
+     * Enemy 모델을 미리 로드하여 캐싱
+     * @returns {Promise<void>}
+     */
+    preloadModel() {
+        // 이미 로드 중이면 기존 Promise 반환
+        if (this._modelLoadPromise) {
+            return this._modelLoadPromise;
+        }
+
+        this._modelLoadPromise = new Promise((resolve, reject) => {
+            const loader = new GLTFLoader();
+            loader.load(
+                './assets/models/Akaza.glb',
+                (gltf) => {
+                    this.cachedModel = gltf.scene;
+                    this.cachedAnimations = gltf.animations;
+                    this.isModelLoaded = true;
+                    console.log('Enemy model preloaded and cached.');
+                    resolve();
+                },
+                undefined,
+                (error) => {
+                    console.error('Failed to preload enemy model:', error);
+                    reject(error);
+                }
+            );
+        });
+
+        return this._modelLoadPromise;
     }
 
     /**
@@ -110,7 +150,13 @@ export class EnemySpawner {
             return null;
         }
 
-        // 👇 Enemy 생성 시 onDeathCallback과 soundSystem 전달
+        // 🔥 캐시된 모델이 있으면 SkeletonUtils.clone으로 복제 (SkinnedMesh 지원)
+        let clonedModel = null;
+        if (this.isModelLoaded && this.cachedModel) {
+            clonedModel = SkeletonUtils.clone(this.cachedModel);
+        }
+
+        // 👇 Enemy 생성 시 onDeathCallback, soundSystem, 캐시된 모델 전달
         const enemy = new Enemy(
             this.scene,
             this.ground,
@@ -121,7 +167,9 @@ export class EnemySpawner {
                     this.onEnemyDeath(deadEnemy);  // 결국 Game.handleEnemyDeath로 감
                 }
             },
-            this.soundSystem
+            this.soundSystem,
+            clonedModel,
+            this.cachedAnimations
         );
 
         enemy.mesh.position.x = x;

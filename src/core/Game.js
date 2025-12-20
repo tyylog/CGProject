@@ -156,6 +156,11 @@ export class Game {
         );
         this.enemySpawner.setBoundsProvider(() => this.environmentSystem.getGroundBounds());
 
+        // 🔥 Enemy 모델 프리로드 (성능 최적화)
+        this.enemySpawner.preloadModel().then(() => {
+            console.log('Enemy model ready for spawning.');
+        });
+
         // Combat System
         this.combatSystem = new CombatSystem({
             playerAttackRange: 3.0,

@@ -58,9 +58,15 @@ export class CombatSystem {
         // attackHitbox가 없으면 충돌 검사 불가
         if (!player.attackHitbox || !player.attackHitboxCollider) return;
 
+        // 🔥 플레이어 공격 중일 때만 attackHitbox 업데이트
+        player.updateAttackHitboxCollider();
+
         enemies.forEach(enemy => {
             if (!enemy.mesh || (enemy.isDead && enemy.isDead())) return;
             if (!enemy.hitBox || !enemy.hitBoxCollider) return;
+
+            // 🔥 플레이어 공격 중일 때만 적의 hitBox 업데이트
+            enemy.updateHitBoxCollider();
 
             // Box3 충돌 검사: attackHitbox와 hitBox가 겹치는지 확인
             if (player.attackHitboxCollider.intersectsBox(enemy.hitBoxCollider)) {
@@ -71,8 +77,9 @@ export class CombatSystem {
                 // 1초 내에 같은 적을 다시 때리지 않음
                 if (now - lastHit < 1000) return;
 
-                // 타격 판정
-                enemy.takeDamage(this.playerAttackDamage);
+                // 타격 판정 (강공격이면 데미지 30, 일반 공격이면 기본 데미지)
+                const damage = player.isHeavyAttack ? 30 : this.playerAttackDamage;
+                enemy.takeDamage(damage);
                 this._lastHitTime.set(enemy, now);
             }
         });

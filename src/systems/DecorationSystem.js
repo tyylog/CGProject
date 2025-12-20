@@ -54,9 +54,10 @@ export class DecorationSystem {
                     const s = THREE.MathUtils.randFloat(0.6, 1.4);
                     rock.scale.set(s, s, s);
 
+                    // 🔥 그림자 최적화: 바위는 그림자를 받기만 하고 생성하지 않음
                     rock.traverse((c) => {
                         if (c.isMesh) {
-                            c.castShadow = true;
+                            c.castShadow = false;
                             c.receiveShadow = true;
                         }
                     });
@@ -84,9 +85,10 @@ export class DecorationSystem {
                     const s = THREE.MathUtils.randFloat(1.0, 2.0);
                     tree.scale.set(s, s, s);
 
+                    // 🔥 그림자 최적화: 나무는 그림자를 받기만 하고 생성하지 않음
                     tree.traverse((c) => {
                         if (c.isMesh) {
-                            c.castShadow = true;
+                            c.castShadow = false;
                             c.receiveShadow = true;
                         }
                     });

@@ -11,8 +11,10 @@ export class Enemy extends Character {
      * @param {Object} options
      * @param {Function} onDeathCallback  // 🔹 추가: 죽을 때 호출할 콜백
      * @param {SoundSystem} soundSystem  // 🔹 추가: 사운드 시스템
+     * @param {THREE.Object3D} cachedModel  // 🔥 캐시된 모델 (clone된 상태)
+     * @param {Array} cachedAnimations  // 🔥 캐시된 애니메이션 클립 배열
      */
-    constructor(scene, ground, options = {}, onDeathCallback = null, soundSystem = null) {
+    constructor(scene, ground, options = {}, onDeathCallback = null, soundSystem = null, cachedModel = null, cachedAnimations = null) {
         super(scene);
         this.soundSystem = soundSystem;
 
@@ -87,8 +89,118 @@ export class Enemy extends Character {
         // 🔹 Character에 있는 콜백 필드에 연결
         this.onDeathCallback = onDeathCallback;
 
-        // 모델 로드
-        this._loadModel();
+        // 🔥 캐시된 모델이 있으면 사용, 없으면 직접 로드 (fallback)
+        if (cachedModel && cachedAnimations) {
+            this._setupCachedModel(cachedModel, cachedAnimations);
+        } else {
+            this._loadModel();
+        }
+    }
+
+    /**
+     * 🔥 캐시된 모델을 설정 (EnemySpawner에서 전달받은 clone된 모델)
+     */
+    _setupCachedModel(model, animations) {
+        this.model = model;
+
+        // 기존 임시 메시 제거
+        const prevPos = this.mesh.position.clone();
+        const prevRot = this.mesh.rotation.clone();
+        const prevScale = this.mesh.scale.clone();
+        this.scene.remove(this.mesh);
+
+        // 모델 설정
+        this.model.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+
+            // hitBox 찾아서 참조 저장 및 숨기기
+            if (child.name === 'hitBox') {
+                this.hitBox = child;
+                child.visible = false;
+            }
+        });
+
+        // 원래 위치/회전/스케일 적용
+        this.model.position.copy(prevPos);
+        this.model.rotation.copy(prevRot);
+        this.model.scale.multiply(prevScale);
+        this.model.position.y = this.groundY + this.radius;
+
+        // 메쉬를 모델로 교체
+        this.mesh = this.model;
+        this.scene.add(this.mesh);
+
+        // 애니메이션 설정
+        this.mixer = new THREE.AnimationMixer(this.model);
+
+        // 애니메이션 액션 생성
+        animations.forEach((clip) => {
+            const action = this.mixer.clipAction(clip);
+            this.actions[clip.name] = action;
+        });
+
+        // 기본 애니메이션(Idle) 재생
+        if (this.actions['Idle']) {
+            this.currentAction = this.actions['Idle'];
+            this.currentAction.play();
+        }
+
+        // 애니메이션 종료 이벤트 리스너
+        this._setupAnimationListeners();
+
+        this._createHealthBar();
+        this.isModelLoaded = true;
+    }
+
+    /**
+     * 🔥 애니메이션 종료 이벤트 리스너 설정 (공통 로직)
+     */
+    _setupAnimationListeners() {
+        this.mixer.addEventListener('finished', (e) => {
+            const finishedAction = e.action;
+            const clipName = finishedAction.getClip().name;
+
+            // Death 애니메이션이 끝나면 제거
+            if (clipName === 'Death') {
+                if (this.hpLabel) {
+                    if (this.hpLabel.element) {
+                        this.hpLabel.element.remove();
+                    }
+                    if (this.hpLabel.parent) {
+                        this.hpLabel.parent.remove(this.hpLabel);
+                    }
+                    if (this.mesh) this.scene.remove(this.mesh);
+                    this._deadDone = true;
+                }
+            }
+
+            // Hit 애니메이션이 끝나면 이전 상태로 복귀
+            if (clipName === 'Hit') {
+                this.state = this.previousState;
+                switch (this.previousState) {
+                    case 'idle':
+                        this.playAnimation('Idle', true);
+                        break;
+                    case 'chase':
+                        this.playAnimation('Run', true);
+                        break;
+                    case 'attack':
+                        this.state = 'chase';
+                        this.playAnimation('Run', true);
+                        break;
+                }
+            }
+
+            // Punch, Kick 애니메이션이 끝나면 idle로 복귀
+            if (clipName === 'Punch' || clipName === 'Kick') {
+                this.state = 'idle';
+                this.isAttackActive = false;
+                this.playAnimation('Idle', true);
+            }
+        });
     }
 
     _loadModel() {
@@ -145,57 +257,9 @@ export class Enemy extends Character {
                     this.currentAction.play();
                 }
 
-                // 애니메이션 종료 이벤트 리스너
-                this.mixer.addEventListener('finished', (e) => {
-                    const finishedAction = e.action;
-                    const clipName = finishedAction.getClip().name;
+                // 애니메이션 종료 이벤트 리스너 (공통 메서드 사용)
+                this._setupAnimationListeners();
 
-                    // Death 애니메이션이 끝나면 제거
-                    if (clipName === 'Death') {
-                        // 체력바 제거
-                        if (this.hpLabel) {
-                            // DOM 제거
-                            if (this.hpLabel.element) {
-                                this.hpLabel.element.remove();
-                            }
-                            // THREE 그래프에서 제거
-                            if (this.hpLabel.parent) {
-                                this.hpLabel.parent.remove(this.hpLabel);
-                            }
-
-                            // 씬에서 메쉬 제거
-                            if (this.mesh) this.scene.remove(this.mesh);
-                            this._deadDone = true;
-                        }
-
-                    }
-
-                    // Hit 애니메이션이 끝나면 이전 상태로 복귀
-                    if (clipName === 'Hit') {
-                        this.state = this.previousState;
-                        // 복귀한 상태에 맞는 애니메이션 재생
-                        switch (this.previousState) {
-                            case 'idle':
-                                this.playAnimation('Idle', true);
-                                break;
-                            case 'chase':
-                                this.playAnimation('Run', true);
-                                break;
-                            case 'attack':
-                                // attack 상태로 복귀하면 chase로 변경 (attack 애니메이션은 1회성이므로)
-                                this.state = 'chase';
-                                this.playAnimation('Run', true);
-                                break;
-                        }
-                    }
-
-                    // Punch, Kick 애니메이션이 끝나면 idle로 복귀 (update에서 거리 체크 후 다시 공격하거나 chase)
-                    if (clipName === 'Punch' || clipName === 'Kick') {
-                        this.state = 'idle';
-                        this.isAttackActive = false;  // 공격 판정 비활성화
-                        this.playAnimation('Idle', true);
-                    }
-                });
                 this._createHealthBar();
                 this.isModelLoaded = true;
             },
@@ -235,7 +299,10 @@ export class Enemy extends Character {
         // y좌표 무시
         toPlayer.y = 0;
 
-        const distance = toPlayer.length();
+        // 🔥 최적화: lengthSq() 사용 (sqrt 연산 제거)
+        const distanceSq = toPlayer.lengthSq();
+        const attackEnterRangeSq = this.attackEnterRange * this.attackEnterRange;
+        const attackExitRangeSq = this.attackExitRange * this.attackExitRange;
 
         // 이전 state 저장
         const prevState = this.state;
@@ -245,7 +312,7 @@ export class Enemy extends Character {
                 // spawn 1초 후 무조건 행동 시작
                 if (this.spawnTime >= this.spawnDelay) {
                     // 플레이어가 공격 범위 안에 있으면 바로 attack
-                    if (distance <= this.attackEnterRange) {
+                    if (distanceSq <= attackEnterRangeSq) {
                         this.state = 'attack';
                         this.isAttackActive = false;  // 공격 시작 시 비활성화
                         this.attackStarted = true;  // 새로운 공격 시작 플래그
@@ -262,7 +329,7 @@ export class Enemy extends Character {
 
             case 'chase':
                 // 진입 범위(enter)를 사용
-                if (distance <= this.attackEnterRange) {
+                if (distanceSq <= attackEnterRangeSq) {
                     this.state = 'attack';
                     this.isAttackActive = false;  // 공격 시작 시 비활성화
                     this.attackStarted = true;  // 새로운 공격 시작 플래그
@@ -297,7 +364,7 @@ export class Enemy extends Character {
                 }
 
                 // 이탈 범위(exit)를 사용: exit 범위를 넘기면 공격 중단
-                if (distance > this.attackExitRange) {
+                if (distanceSq > attackExitRangeSq) {
                     this.state = 'chase';
                     this.isAttackActive = false;  // 공격 종료 시 비활성화
                 }
@@ -330,7 +397,7 @@ export class Enemy extends Character {
 
         this._lookAtPlayer(player);
         this.updateCollider();
-        this.updateHitBoxCollider();
+        // hitBoxCollider는 CombatSystem에서 필요할 때만 업데이트
     }
 
     _moveTowardsPlayer(delta, dir) {
