@@ -1,5 +1,5 @@
 // src/config/leaderboardConfig.js
-export const LEADERBOARD_BASE_URL = "https://cgprojectleaderboard.duckdns.org:3000";
+export const LEADERBOARD_BASE_URL = "https://cgprojectleaderboard.duckdns.org";
 
 export function getOrCreatePlayerId() {
   const key = "cgproject_playerId";
