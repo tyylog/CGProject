@@ -25,15 +25,44 @@ export class UISystem {
         this.hpContainer.style.border = '2px solid white';
         this.hpContainer.style.background = 'rgba(0,0,0,0.4)';
         this.hpContainer.style.marginBottom = '6px';
+
+        // ✅ 핵심: 컨테이너를 relative로
+        this.hpContainer.style.position = 'relative';
+        this.hpContainer.style.overflow = 'hidden'; // 바 줄어들 때 깔끔
+
         this.hpBar = document.createElement('div');
         this.hpBar.style.height = '100%';
         this.hpBar.style.width = '100%';
         this.hpBar.style.background = '#ff4444';
+
+        // ✅ 바를 뒤에 깔기 (optional이지만 안전)
+        this.hpBar.style.position = 'absolute';
+        this.hpBar.style.left = '0';
+        this.hpBar.style.top = '0';
+        this.hpBar.style.zIndex = '1';
+
         this.hpContainer.appendChild(this.hpBar);
 
-        this.hpText = document.createElement('div');
-        this.hpText.style.fontSize = '14px';
-        this.hpText.style.marginBottom = '10px';
+        // ✅ HP 텍스트를 바 위에 올리기
+        this.hpBarText = document.createElement('div');
+        Object.assign(this.hpBarText.style, {
+            position: 'absolute',
+            inset: '0',                 // top/right/bottom/left = 0
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'left',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#fff',
+            zIndex: '2',
+            textShadow: '0 0 4px rgba(0,0,0,0.9)',
+            pointerEvents: 'none',
+        });
+
+        this.hpBarText.textContent = '0%';
+        this.hpBarText.style.paddingLeft = '2px';
+        this.hpBarText.style.boxSizing = 'border-box';
+        this.hpContainer.appendChild(this.hpBarText);
 
         // ============================
         // STAMINA 바
@@ -277,7 +306,6 @@ export class UISystem {
         // root에 추가
         this.root.appendChild(this.hpContainer);
         this.root.appendChild(this.staminaContainer);
-        this.root.appendChild(this.hpText);
         this.root.appendChild(this.skillContainer);
         this.root.appendChild(this.timeText);
 
@@ -441,8 +469,10 @@ export class UISystem {
         const hpRatio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
         this.hpBar.style.width = (hpRatio * 100) + '%';
 
-        // HP 텍스트
-        this.hpText.textContent = `HP: ${hp} / ${maxHp}`;
+        // HP 텍스트 (바 내부)
+        if (this.hpBarText) {
+            this.hpBarText.textContent = `${(hpRatio * 100)}%`;
+        }
 
         // STAMINA 바 비율 반영
         const stRatio = maxStamina > 0 ? Math.max(0, Math.min(1, stamina / maxStamina)) : 0;
