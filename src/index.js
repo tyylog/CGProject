@@ -10,3 +10,8 @@ if (DEBUG_MODE) {
 
 const game = new Game({ debug: DEBUG_MODE});
 game.uiSystem.setGame(game);
+
+// ===== 탭 비활성 감지 =====
+document.addEventListener("visibilitychange", () => {
+  game.setVisibilityPaused(document.hidden);
+});

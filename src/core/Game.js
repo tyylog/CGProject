@@ -42,6 +42,9 @@ export class Game {
         this.phaseIndex = 0;
         this.phaseLengthSec = 60; // 각 phase 당 길이 (초)
 
+        // 탭 비활성화 시 게임 멈추도록
+        this.visibilityPaused = false;
+
         // 🔥 디버그 모드면 바로 시작된 상태로
         this.isGameStarted = this.DEBUG_MODE ? true : false;
 
@@ -285,7 +288,16 @@ export class Game {
     }
 
     animate() {
-        const delta = this.clock.getDelta();
+        let delta = this.clock.getDelta();
+        delta = Math.min(delta, 0.05); // 최대 50ms만 반영
+
+        // 탭 비활성이면 게임 로직 멈추도록
+        if (this.visibilityPaused) {
+            this.renderer.render(this.scene, this.camera);
+            this.labelRenderer.render(this.scene, this.camera);
+            requestAnimationFrame(this.animate);
+            return;
+        }
 
         // 게임이 시작되지 않았으면 렌더링만 하고 리턴
         if (!this.isGameStarted) {
@@ -525,6 +537,15 @@ export class Game {
     restart() {
         // 페이지 리로드로 간단히 재시작
         window.location.reload();
+    }
+
+    setVisibilityPaused(v) {
+        this.visibilityPaused = v;
+
+        // 탭에서 돌아올 때 dt 폭주(수초~수십초)를 한 번 비워줌
+        if (!v && this.clock) {
+            this.clock.getDelta();
+        }
     }
 
 }
