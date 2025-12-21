@@ -418,8 +418,8 @@ export class Game {
     }
 
     _updateCamera() {
-        const pos = this.player.mesh.position;
-        const offset = this.player.cameraOffset; 
+        const pos = this.player.getCameraTargetPosition();
+        const offset = this.player.cameraOffset;
         // 예: new THREE.Vector3(0, 2, 10)
         // offset.z = 카메라와 플레이어 거리 (반지름)
         // offset.y = 플레이어보다 카메라가 얼마나 더 위에 있을지 (추가높이)
