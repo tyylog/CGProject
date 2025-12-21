@@ -140,11 +140,11 @@ export class Game {
         // 효과음 로드
         // Player 사운드
         this.soundSystem.loadSFX('playerAttackLeft', './assets/sounds/player/MouseLeft.mp3', 0.5);
-        this.soundSystem.loadSFX('playerAttackRight', './assets/sounds/player/MouseRight.m4a', 0.6);
+        this.soundSystem.loadSFX('playerAttackRight', './assets/sounds/player/MouseRight.m4a', 0.5);
         this.soundSystem.loadSFX('playerRun', './assets/sounds/player/Run.mp3', 0.3);
         this.soundSystem.loadSFX('playerDeath', './assets/sounds/player/Death.mp3', 0.6);
         this.soundSystem.loadSFX('playerFlame', './assets/sounds/player/flame.m4a', 0.6);
-        this.soundSystem.loadSFX('playerRengoku', './assets/sounds/player/rengoku.m4a', 0.6);
+        this.soundSystem.loadSFX('playerRengoku', './assets/sounds/player/rengoku.m4a', 0.4);
 
         // Enemy 사운드
         this.soundSystem.loadSFX('enemyAttack', './assets/sounds/enemy/Attack.mp3', 0.4);
@@ -398,6 +398,8 @@ export class Game {
                 potionCount: this.player.potionCount ?? 0,
                 heavyAttackCooldown: this.player.heavyAttackCooldown ?? 3.0,
                 heavyAttackTimer: this.player.heavyAttackTimer ?? 0,
+                jumpAttackCooldown: this.player.jumpAttackCooldown ?? 15.0,
+                jumpAttackTimer: this.player.jumpAttackTimer ?? 0,
                 debugInfo,  // 디버그 정보 전달
             });
         }

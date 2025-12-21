@@ -247,15 +247,130 @@ export class UISystem {
         this.heavyAttackContainer.appendChild(this.heavyAttackIcon);
         this.heavyAttackContainer.appendChild(this.heavyAttackCooldownText);
 
+        // ============================
+        // 🔥 JumpAttack(R키) 쿨타임 UI (강공격 옆)
+        // ============================
+        this.jumpAttackContainer = document.createElement('div');
+        Object.assign(this.jumpAttackContainer.style, {
+            position: 'relative',
+            width: '72px',
+            height: '72px',
+            background: '#7a7a7a',
+            border: '3px solid rgba(255,255,255,0.35)',
+            borderRadius: '6px',
+            boxShadow: '0 0 10px rgba(0,0,0,0.35)',
+            marginLeft: '10px',
+            zIndex: 999,
+            pointerEvents: 'none',
+        });
+
+        // JumpAttack 아이콘 (이미지)
+        this.jumpAttackIcon = document.createElement('img');
+        this.jumpAttackIcon.src = './assets/images/jumpattack.png';
+        Object.assign(this.jumpAttackIcon.style, {
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '52px',
+            height: '52px',
+            objectFit: 'contain',
+            imageRendering: 'pixelated',
+            filter: 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
+        });
+
+        // 쿨타임 오버레이 (어둡게 덮음)
+        this.jumpAttackOverlay = document.createElement('div');
+        Object.assign(this.jumpAttackOverlay.style, {
+            position: 'absolute',
+            bottom: '0',
+            left: '0',
+            width: '100%',
+            height: '0%',
+            background: 'rgba(0,0,0,0.7)',
+            borderRadius: '3px',
+            transition: 'height 0.1s linear',
+        });
+
+        // 쿨타임 텍스트
+        this.jumpAttackCooldownText = document.createElement('div');
+        Object.assign(this.jumpAttackCooldownText.style, {
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '18px',
+            fontWeight: '900',
+            textShadow: '0 0 3px rgba(0,0,0,0.9)',
+            zIndex: '10',
+        });
+
+        this.jumpAttackContainer.appendChild(this.jumpAttackOverlay);
+        this.jumpAttackContainer.appendChild(this.jumpAttackIcon);
+        this.jumpAttackContainer.appendChild(this.jumpAttackCooldownText);
+
+        // ============================
+        // 키 힌트 스타일 헬퍼
+        // ============================
+        const createKeyHint = (text) => {
+            const hint = document.createElement('div');
+            Object.assign(hint.style, {
+                textAlign: 'center',
+                marginTop: '4px',
+                fontSize: '12px',
+                fontWeight: '700',
+                color: 'rgba(255,255,255,0.85)',
+                textShadow: '0 0 3px rgba(0,0,0,0.9)',
+            });
+            hint.textContent = text;
+            return hint;
+        };
+
+        // 스킬 래퍼 (아이콘 + 키 힌트)
+        const createSkillWrapper = (container, hintElement) => {
+            const wrapper = document.createElement('div');
+            Object.assign(wrapper.style, {
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+            });
+            wrapper.appendChild(container);
+            wrapper.appendChild(hintElement);
+            return wrapper;
+        };
+
+        // 포션 래퍼 (키: 1)
+        this.potionWrapper = createSkillWrapper(this.potionContainer, createKeyHint('1'));
+
+        // 강공격 래퍼 (키: 마우스 오른쪽)
+        const heavyHint = document.createElement('div');
+        Object.assign(heavyHint.style, {
+            textAlign: 'center',
+            marginTop: '4px',
+            fontSize: '14px',
+            color: 'rgba(255,255,255,0.85)',
+            textShadow: '0 0 3px rgba(0,0,0,0.9)',
+        });
+        heavyHint.innerHTML = '🖱️Right';  // 마우스 오른쪽 아이콘
+        this.heavyAttackWrapper = createSkillWrapper(this.heavyAttackContainer, heavyHint);
+        this.heavyAttackWrapper.style.marginLeft = '10px';
+
+        // JumpAttack 래퍼 (키: R)
+        this.jumpAttackWrapper = createSkillWrapper(this.jumpAttackContainer, createKeyHint('R'));
+        this.jumpAttackWrapper.style.marginLeft = '10px';
+
         // 포션과 강공격을 담을 가로 컨테이너
         this.skillContainer = document.createElement('div');
         Object.assign(this.skillContainer.style, {
             display: 'flex',
             flexDirection: 'row',
-            alignItems: 'center',
+            alignItems: 'flex-start',
         });
-        this.skillContainer.appendChild(this.potionContainer);
-        this.skillContainer.appendChild(this.heavyAttackContainer);
+        this.skillContainer.appendChild(this.potionWrapper);
+        this.skillContainer.appendChild(this.heavyAttackWrapper);
+        this.skillContainer.appendChild(this.jumpAttackWrapper);
 
         // ============================
         // 게임 오버 텍스트
@@ -462,6 +577,8 @@ export class UISystem {
             potionCount = 0,
             heavyAttackCooldown = 3.0,
             heavyAttackTimer = 0,
+            jumpAttackCooldown = 15.0,
+            jumpAttackTimer = 0,
             debugInfo,
         } = data;
 
@@ -512,6 +629,23 @@ export class UISystem {
                 // 쿨타임 끝: 오버레이 숨김
                 this.heavyAttackOverlay.style.height = '0%';
                 this.heavyAttackCooldownText.style.display = 'none';
+            }
+        }
+
+        // 🔥 JumpAttack 쿨타임 UI 갱신
+        if (this.jumpAttackOverlay && this.jumpAttackCooldownText) {
+            if (jumpAttackTimer > 0) {
+                // 쿨타임 중: 오버레이 높이를 쿨타임 비율만큼 표시
+                const cooldownRatio = jumpAttackTimer / jumpAttackCooldown;
+                this.jumpAttackOverlay.style.height = (cooldownRatio * 100) + '%';
+
+                // 남은 시간 텍스트 표시 (소수점 첫째자리까지)
+                this.jumpAttackCooldownText.textContent = jumpAttackTimer.toFixed(1);
+                this.jumpAttackCooldownText.style.display = 'block';
+            } else {
+                // 쿨타임 끝: 오버레이 숨김
+                this.jumpAttackOverlay.style.height = '0%';
+                this.jumpAttackCooldownText.style.display = 'none';
             }
         }
 
