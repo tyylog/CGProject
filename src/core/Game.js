@@ -91,17 +91,17 @@ export class Game {
 
     _initWorld() {
         // 환경광 (세기를 낮춤)
-        const ambientLight = new THREE.AmbientLight(0x444444);
+        const ambientLight = new THREE.AmbientLight(0x555555);
         this.scene.add(ambientLight);
 
         // DirectionalLight 강도를 낮춤
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
         dirLight.position.set(5, 12, 8);
         dirLight.castShadow = true;
         this.scene.add(dirLight);
 
         // 플레이어를 따라다니는 SpotLight
-        this.playerSpotLight = new THREE.SpotLight(0xffffff, 8.0);
+        this.playerSpotLight = new THREE.SpotLight(0xffffff, 9.0);
         this.playerSpotLight.angle = Math.PI / 3;  // 더 넓은 조명 각도 (60도)
         this.playerSpotLight.penumbra = 0.9;       // 부드러운 가장자리
         this.playerSpotLight.decay = 1.0;
