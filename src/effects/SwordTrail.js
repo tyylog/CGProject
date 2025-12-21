@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 
 export class SwordTrail {
-    constructor(scene, swordMesh, texturePath = './assets/images/fire.png') {
+    constructor(scene, swordMesh, texturePath = './assets/images/fire.png', options = {}) {
         this.scene = scene;
         this.swordMesh = swordMesh;
         this.isActive = false;
@@ -18,9 +18,10 @@ export class SwordTrail {
         const textureLoader = new THREE.TextureLoader();
         this.texture = textureLoader.load(texturePath);
 
-        // 검의 시작점과 끝점 오프셋 (검의 날 부분) - 2배 크기
-        this.tipOffset = new THREE.Vector3(0, 0, 2.0);  // 검 끝
-        this.baseOffset = new THREE.Vector3(0, 0, 0.4); // 검 손잡이 근처
+        // 검의 시작점과 끝점 오프셋 (옵션으로 커스터마이징 가능)
+        const scale = options.scale || 1.0;
+        this.tipOffset = options.tipOffset || new THREE.Vector3(0, 0, 2.0 * scale);
+        this.baseOffset = options.baseOffset || new THREE.Vector3(0, 0, 0.4 * scale);
     }
 
     // 검의 월드 위치 가져오기
@@ -141,7 +142,7 @@ export class SwordTrail {
             transparent: true,
             opacity: 0.8,
             side: THREE.DoubleSide,
-            blending: THREE.AdditiveBlending,
+            blending: THREE.NormalBlending,
             depthWrite: false,
             vertexColors: true
         });

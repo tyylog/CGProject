@@ -171,19 +171,20 @@ export class UISystem {
             pointerEvents: 'none',
         });
 
-        // 강공격 아이콘 (텍스트로 대체)
-        this.heavyAttackIcon = document.createElement('div');
+        // 강공격 아이콘 (이미지)
+        this.heavyAttackIcon = document.createElement('img');
+        this.heavyAttackIcon.src = './assets/images/strongattack.png';
         Object.assign(this.heavyAttackIcon.style, {
             position: 'absolute',
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: '32px',
-            fontWeight: 'bold',
-            color: '#ffcc00',
-            textShadow: '0 0 5px rgba(0,0,0,0.8)',
+            width: '52px',
+            height: '52px',
+            objectFit: 'contain',
+            imageRendering: 'pixelated',
+            filter: 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
         });
-        this.heavyAttackIcon.textContent = '⚔';
 
         // 쿨타임 오버레이 (어둡게 덮음)
         this.heavyAttackOverlay = document.createElement('div');

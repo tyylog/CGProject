@@ -86,6 +86,8 @@ export class CombatSystem {
     }
 
     _handleEnemyAttacks(delta, player, enemies) {
+        // 플레이어 hitBox가 없으면 스킵
+        if (!player.hitBox || !player.hitBoxCollider) return;
 
         enemies.forEach(enemy => {
             if (!enemy.mesh || (enemy.isDead && enemy.isDead())) return;
@@ -99,6 +101,9 @@ export class CombatSystem {
             // 공격 판정이 활성화되지 않았으면 스킵
             if (!enemy.isAttackActive) return;
 
+            // 공격 히트박스가 없으면 스킵
+            if (!enemy.attackLeg && !enemy.attackPunch) return;
+
             // enemy별 쿨타임 꺼내기 (같은 공격으로 여러 번 맞는 것 방지)
             let timer = this._enemyAttackTimers.get(enemy) || 0;
             if (timer > 0) {
@@ -107,12 +112,19 @@ export class CombatSystem {
                 return;
             }
 
-            // 공격 발동 (애니메이션 50% 지점)
-            const dmg = enemy.attackDamage;
-            player.takeDamage(dmg);
+            // 적 공격 히트박스와 플레이어 hitBox 업데이트
+            enemy.updateAttackHitboxCollider();
+            player.updateHitBoxCollider();
 
-            // 쿨타임 리셋 (0.5초 - 같은 공격 애니메이션 내에서 중복 타격 방지)
-            this._enemyAttackTimers.set(enemy, 0.5);
+            // Box3 충돌 검사: 적의 공격 히트박스와 플레이어 hitBox가 겹치는지 확인
+            if (enemy.attackHitboxCollider.intersectsBox(player.hitBoxCollider)) {
+                // 공격 발동
+                const dmg = enemy.attackDamage;
+                player.takeDamage(dmg);
+
+                // 쿨타임 리셋 (0.5초 - 같은 공격 애니메이션 내에서 중복 타격 방지)
+                this._enemyAttackTimers.set(enemy, 0.5);
+            }
         });
     }
 

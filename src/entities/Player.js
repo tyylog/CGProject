@@ -32,11 +32,19 @@ export class Player extends Character {
         this.attackHitbox = null;
         this.attackHitboxCollider = new THREE.Box3();
 
+        // 피격 히트박스 참조 (적의 공격을 맞는 용도)
+        this.hitBox = null;
+        this.hitBoxCollider = new THREE.Box3();
+
         // 검 메쉬 참조
         this.swordMesh = null;
 
         // 검 궤적 효과
         this.swordTrail = null;
+
+        // 발 잔상 효과
+        this.leftFootTrail = null;
+        this.rightFootTrail = null;
 
         this.speed = 5;        // m/s
         this.runMultiplier = 2;
@@ -109,6 +117,29 @@ export class Player extends Character {
                     if (child.name === 'sword') {
                         this.swordMesh = child;
                         console.log('sword mesh found:', child);
+                    }
+
+                    // hitbox 찾아서 참조 저장 및 숨기기 (피격 판정용)
+                    if (child.name === 'hitbox') {
+                        this.hitBox = child;
+                        child.visible = false;
+                        console.log('hitbox found and hidden');
+                    }
+
+                    // leftfoot 오브젝트 숨기고 잔상 효과 추가 (항상 활성화)
+                    if (child.name === 'leftfoot') {
+                        child.visible = false;
+                        this.leftFootTrail = new SwordTrail(this.scene, child, './assets/images/fire.png');
+                        this.leftFootTrail.start();
+                        console.log('leftfoot trail initialized');
+                    }
+
+                    // rightfoot 오브젝트 숨기고 잔상 효과 추가 (항상 활성화)
+                    if (child.name === 'rightfoot') {
+                        child.visible = false;
+                        this.rightFootTrail = new SwordTrail(this.scene, child, './assets/images/fire.png');
+                        this.rightFootTrail.start();
+                        console.log('rightfoot trail initialized');
                     }
                 });
 
@@ -274,6 +305,14 @@ export class Player extends Character {
         // 애니메이션 믹서 업데이트
         if (this.mixer) {
             this.mixer.update(delta);
+        }
+
+        // 발 잔상 효과 업데이트
+        if (this.leftFootTrail) {
+            this.leftFootTrail.update(delta);
+        }
+        if (this.rightFootTrail) {
+            this.rightFootTrail.update(delta);
         }
 
         // 검 궤적 업데이트
@@ -498,6 +537,12 @@ export class Player extends Character {
     updateAttackHitboxCollider() {
         if (this.attackHitbox) {
             this.attackHitboxCollider.setFromObject(this.attackHitbox);
+        }
+    }
+
+    updateHitBoxCollider() {
+        if (this.hitBox) {
+            this.hitBoxCollider.setFromObject(this.hitBox);
         }
     }
 

@@ -90,13 +90,30 @@ export class Game {
     }
 
     _initWorld() {
-        const ambientLight = new THREE.AmbientLight(0x333333);
+        // 환경광 (세기를 낮춤)
+        const ambientLight = new THREE.AmbientLight(0x444444);
         this.scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff);
+        // DirectionalLight 강도를 낮춤
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
         dirLight.position.set(5, 12, 8);
         dirLight.castShadow = true;
         this.scene.add(dirLight);
+
+        // 플레이어를 따라다니는 SpotLight
+        this.playerSpotLight = new THREE.SpotLight(0xffffff, 8.0);
+        this.playerSpotLight.angle = Math.PI / 3;  // 더 넓은 조명 각도 (60도)
+        this.playerSpotLight.penumbra = 0.9;       // 부드러운 가장자리
+        this.playerSpotLight.decay = 1.0;
+        this.playerSpotLight.distance = 80;        // 조명 도달 거리
+        this.playerSpotLight.castShadow = true;
+        this.playerSpotLight.position.set(0, 15, 0);  // 초기 위치 (플레이어 위)
+        this.scene.add(this.playerSpotLight);
+
+        // SpotLight 타겟 (플레이어 위치를 따라감)
+        this.spotLightTarget = new THREE.Object3D();
+        this.scene.add(this.spotLightTarget);
+        this.playerSpotLight.target = this.spotLightTarget;
 
         const planeGeometry = new THREE.PlaneGeometry(1500, 1500);
         const planeMaterial = new THREE.MeshLambertMaterial({ color: 0xaaaa00 });
@@ -386,6 +403,13 @@ export class Game {
         // 카메라 위치 갱신
         this.input.applyToCamera(this.camera);
         this._updateCamera();
+
+        // SpotLight를 플레이어 위치에 따라 업데이트
+        if (this.playerSpotLight && this.player && this.player.mesh) {
+            const playerPos = this.player.mesh.position;
+            this.playerSpotLight.position.set(playerPos.x, playerPos.y + 15, playerPos.z);
+            this.spotLightTarget.position.set(playerPos.x, playerPos.y, playerPos.z);
+        }
 
         this.renderer.render(this.scene, this.camera);
         this.labelRenderer.render(this.scene, this.camera);
