@@ -2,167 +2,228 @@
 import * as THREE from 'three';
 
 export class SwordTrail {
-    constructor(scene, swordMesh, texturePath = './assets/images/fire.png', options = {}) {
-        this.scene = scene;
-        this.swordMesh = swordMesh;
-        this.isActive = false;
+  constructor(scene, swordMesh, texturePath = './assets/images/fire.png', options = {}) {
+    this.scene = scene;
+    this.swordMesh = swordMesh;
+    this.isActive = false;
 
-        // 궤적 포인트 저장 배열
-        this.trailPoints = [];
-        this.maxPoints = 20; // 궤적 길이 (포인트 수)
+    // 포인트
+    this.trailPoints = [];
+    this.maxPoints = options.maxPoints ?? 20;
 
-        // 궤적 메쉬들
-        this.trailMeshes = [];
+    // 오프셋
+    const scale = options.scale || 1.0;
+    this.tipOffset  = options.tipOffset  || new THREE.Vector3(0, 0, 2.0 * scale);
+    this.baseOffset = options.baseOffset || new THREE.Vector3(0, 0, 0.4 * scale);
 
-        // 텍스처 로드
-        const textureLoader = new THREE.TextureLoader();
-        this.texture = textureLoader.load(texturePath);
+    // 텍스처 (TextureLoader는 내부적으로 캐시하긴 하지만, 그래도 dispose는 명확히)
+    this.texture = new THREE.TextureLoader().load(texturePath);
 
-        // 검의 시작점과 끝점 오프셋 (옵션으로 커스터마이징 가능)
-        const scale = options.scale || 1.0;
-        this.tipOffset = options.tipOffset || new THREE.Vector3(0, 0, 2.0 * scale);
-        this.baseOffset = options.baseOffset || new THREE.Vector3(0, 0, 0.4 * scale);
-    }
+    // ====== 1회 생성: geometry/material/mesh ======
+    // 정점: 포인트당 2개 (tip, base)
+    const maxVerts = this.maxPoints * 2;
+    // 인덱스: (N-1) 세그먼트 * 2 triangles * 3 = 6*(N-1)
+    const maxIndices = 6 * (this.maxPoints - 1);
 
-    // 검의 월드 위치 가져오기
-    getSwordWorldPositions() {
-        if (!this.swordMesh) return null;
+    this._positions = new Float32Array(maxVerts * 3);
+    this._uvs       = new Float32Array(maxVerts * 2);
+    this._colors    = new Float32Array(maxVerts * 4);
+    this._indices   = new Uint16Array(maxIndices); // maxPoints 20이면 충분히 16bit
 
-        // 검의 월드 행렬 업데이트
-        this.swordMesh.updateMatrixWorld(true);
+    this.geometry = new THREE.BufferGeometry();
 
-        // 검 끝 위치
-        const tipPos = this.tipOffset.clone();
-        tipPos.applyMatrix4(this.swordMesh.matrixWorld);
+    const posAttr = new THREE.BufferAttribute(this._positions, 3);
+    posAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geometry.setAttribute('position', posAttr);
 
-        // 검 기반 위치
-        const basePos = this.baseOffset.clone();
-        basePos.applyMatrix4(this.swordMesh.matrixWorld);
+    const uvAttr = new THREE.BufferAttribute(this._uvs, 2);
+    uvAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geometry.setAttribute('uv', uvAttr);
 
-        return { tip: tipPos, base: basePos };
-    }
+    const colAttr = new THREE.BufferAttribute(this._colors, 4);
+    colAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geometry.setAttribute('color', colAttr);
 
-    // 궤적 시작
-    start() {
-        this.isActive = true;
-        this.trailPoints = [];
-    }
+    const idxAttr = new THREE.BufferAttribute(this._indices, 1);
+    idxAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geometry.setIndex(idxAttr);
 
-    // 궤적 정지
-    stop() {
-        this.isActive = false;
-    }
+    // 처음엔 아무것도 안 그리게
+    this.geometry.setDrawRange(0, 0);
 
-    // 매 프레임 업데이트
-    update(delta) {
-        if (this.isActive && this.swordMesh) {
-            const positions = this.getSwordWorldPositions();
-            if (positions) {
-                // 새 포인트 추가
-                this.trailPoints.push({
-                    tip: positions.tip.clone(),
-                    base: positions.base.clone(),
-                    life: 1.0 // 생명력 (1.0 = 완전히 보임, 0.0 = 사라짐)
-                });
+    this.material = new THREE.MeshBasicMaterial({
+      map: this.texture,
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide,
+      blending: THREE.NormalBlending,
+      depthWrite: false,
+      vertexColors: true
+    });
 
-                // 최대 포인트 수 제한
-                if (this.trailPoints.length > this.maxPoints) {
-                    this.trailPoints.shift();
-                }
-            }
-        }
+    this.mesh = new THREE.Mesh(this.geometry, this.material);
+    this.mesh.frustumCulled = false; // 트레일은 바운딩 계산 귀찮으면 끄는 게 안정적
+    this.scene.add(this.mesh);
 
-        // 모든 포인트의 생명력 감소
-        for (let i = 0; i < this.trailPoints.length; i++) {
-            this.trailPoints[i].life -= delta * 3.0; // 생명력 감소 속도
-        }
+    // 임시 벡터 재사용 (GC 줄이기)
+    this._tmpTip  = new THREE.Vector3();
+    this._tmpBase = new THREE.Vector3();
+  }
 
-        // 생명력이 0 이하인 포인트 제거
-        this.trailPoints = this.trailPoints.filter(p => p.life > 0);
+  getSwordWorldPositions() {
+    if (!this.swordMesh) return null;
 
-        // 궤적 메쉬 업데이트
-        this.updateTrailMesh();
-    }
+    this.swordMesh.updateMatrixWorld(true);
 
-    // 궤적 메쉬 생성/업데이트
-    updateTrailMesh() {
-        // 기존 메쉬 제거
-        this.trailMeshes.forEach(mesh => {
-            this.scene.remove(mesh);
-            if (mesh.geometry) mesh.geometry.dispose();
-            if (mesh.material) mesh.material.dispose();
-        });
-        this.trailMeshes = [];
+    // clone() 남발 금지: tmp 벡터 재사용
+    this._tmpTip.copy(this.tipOffset).applyMatrix4(this.swordMesh.matrixWorld);
+    this._tmpBase.copy(this.baseOffset).applyMatrix4(this.swordMesh.matrixWorld);
 
-        if (this.trailPoints.length < 2) return;
+    return { tip: this._tmpTip, base: this._tmpBase };
+  }
 
-        // 포인트들로 리본 형태의 메쉬 생성
-        const vertices = [];
-        const uvs = [];
-        const indices = [];
-        const colors = [];
+  start() {
+    this.isActive = true;
+    this.trailPoints.length = 0;
+    this.geometry.setDrawRange(0, 0);
+  }
 
-        for (let i = 0; i < this.trailPoints.length; i++) {
-            const point = this.trailPoints[i];
-            const alpha = point.life;
+  stop() {
+    this.isActive = false;
+    // 원하면 stop 시 즉시 사라지게:
+    // this.trailPoints.length = 0;
+    // this.geometry.setDrawRange(0, 0);
+  }
 
-            // 각 포인트에서 두 개의 정점 생성 (리본 형태)
-            vertices.push(point.tip.x, point.tip.y, point.tip.z);
-            vertices.push(point.base.x, point.base.y, point.base.z);
-
-            // UV 좌표
-            const u = i / (this.trailPoints.length - 1);
-            uvs.push(u, 0);
-            uvs.push(u, 1);
-
-            // 색상 (알파값 포함)
-            colors.push(1, 1, 1, alpha);
-            colors.push(1, 1, 1, alpha);
-
-            // 인덱스 (삼각형 생성)
-            if (i < this.trailPoints.length - 1) {
-                const base = i * 2;
-                indices.push(base, base + 1, base + 2);
-                indices.push(base + 1, base + 3, base + 2);
-            }
-        }
-
-        if (vertices.length === 0) return;
-
-        // 지오메트리 생성
-        const geometry = new THREE.BufferGeometry();
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
-        geometry.setIndex(indices);
-
-        // 머티리얼 생성
-        const material = new THREE.MeshBasicMaterial({
-            map: this.texture,
-            transparent: true,
-            opacity: 0.8,
-            side: THREE.DoubleSide,
-            blending: THREE.NormalBlending,
-            depthWrite: false,
-            vertexColors: true
+  update(delta) {
+    if (this.isActive && this.swordMesh) {
+      const positions = this.getSwordWorldPositions();
+      if (positions) {
+        // 여기서도 clone 최소화: 필요한 값만 숫자로 저장
+        this.trailPoints.push({
+          tipX: positions.tip.x,  tipY: positions.tip.y,  tipZ: positions.tip.z,
+          baseX: positions.base.x, baseY: positions.base.y, baseZ: positions.base.z,
+          life: 1.0
         });
 
-        // 메쉬 생성 및 추가
-        const mesh = new THREE.Mesh(geometry, material);
-        this.scene.add(mesh);
-        this.trailMeshes.push(mesh);
+        if (this.trailPoints.length > this.maxPoints) {
+          this.trailPoints.shift();
+        }
+      }
     }
 
-    // 정리
-    dispose() {
-        this.stop();
-        this.trailMeshes.forEach(mesh => {
-            this.scene.remove(mesh);
-            if (mesh.geometry) mesh.geometry.dispose();
-            if (mesh.material) mesh.material.dispose();
-        });
-        this.trailMeshes = [];
-        this.trailPoints = [];
-        if (this.texture) this.texture.dispose();
+    // life 감소 + 필터링 (배열 새로 만들지 말고 in-place로)
+    for (let i = 0; i < this.trailPoints.length; i++) {
+      this.trailPoints[i].life -= delta * 3.0;
     }
+    // 뒤에서부터 제거
+    for (let i = this.trailPoints.length - 1; i >= 0; i--) {
+      if (this.trailPoints[i].life <= 0) this.trailPoints.splice(i, 1);
+    }
+
+    this._updateTrailBuffers();
+  }
+
+  _updateTrailBuffers() {
+    const n = this.trailPoints.length;
+
+    if (n < 2) {
+      this.geometry.setDrawRange(0, 0);
+      return;
+    }
+
+    // vertices / uvs / colors 채우기
+    for (let i = 0; i < n; i++) {
+      const p = this.trailPoints[i];
+      const alpha = p.life;
+      const u = i / (n - 1);
+
+      const vBase = i * 2;
+
+      // tip vertex
+      let pi = (vBase + 0) * 3;
+      this._positions[pi + 0] = p.tipX;
+      this._positions[pi + 1] = p.tipY;
+      this._positions[pi + 2] = p.tipZ;
+
+      // base vertex
+      pi = (vBase + 1) * 3;
+      this._positions[pi + 0] = p.baseX;
+      this._positions[pi + 1] = p.baseY;
+      this._positions[pi + 2] = p.baseZ;
+
+      // uvs
+      let ui = (vBase + 0) * 2;
+      this._uvs[ui + 0] = u; this._uvs[ui + 1] = 0;
+
+      ui = (vBase + 1) * 2;
+      this._uvs[ui + 0] = u; this._uvs[ui + 1] = 1;
+
+      // colors (rgba)
+      let ci = (vBase + 0) * 4;
+      this._colors[ci + 0] = 1;
+      this._colors[ci + 1] = 1;
+      this._colors[ci + 2] = 1;
+      this._colors[ci + 3] = alpha;
+
+      ci = (vBase + 1) * 4;
+      this._colors[ci + 0] = 1;
+      this._colors[ci + 1] = 1;
+      this._colors[ci + 2] = 1;
+      this._colors[ci + 3] = alpha;
+    }
+
+    // indices 채우기 (세그먼트 수 = n-1)
+    let idx = 0;
+    for (let i = 0; i < n - 1; i++) {
+      const base = i * 2;
+      this._indices[idx++] = base;
+      this._indices[idx++] = base + 1;
+      this._indices[idx++] = base + 2;
+
+      this._indices[idx++] = base + 1;
+      this._indices[idx++] = base + 3;
+      this._indices[idx++] = base + 2;
+    }
+
+    // 업데이트 플래그
+    this.geometry.attributes.position.needsUpdate = true;
+    this.geometry.attributes.uv.needsUpdate = true;
+    this.geometry.attributes.color.needsUpdate = true;
+    this.geometry.index.needsUpdate = true;
+
+    // 실제 그릴 인덱스 수만
+    this.geometry.setDrawRange(0, idx);
+
+    // 바운딩 업데이트(선택): frustumCulled=false면 생략 가능
+    // this.geometry.computeBoundingSphere();
+  }
+
+  dispose() {
+    this.stop();
+    this.trailPoints.length = 0;
+
+    if (this.mesh) {
+      if (this.mesh.parent) this.mesh.parent.remove(this.mesh);
+      this.mesh = null;
+    }
+
+    if (this.geometry) {
+      this.geometry.dispose();
+      this.geometry = null;
+    }
+
+    if (this.material) {
+      this.material.dispose();
+      this.material = null;
+    }
+
+    if (this.texture) {
+      this.texture.dispose();
+      this.texture = null;
+    }
+
+    this.swordMesh = null;
+    this.scene = null;
+  }
 }
