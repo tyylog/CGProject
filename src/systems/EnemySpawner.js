@@ -180,8 +180,13 @@ export class EnemySpawner {
 
 
     _cleanupDead() {
-        this.enemies = this.enemies.filter(e => !e.isDead());
-        // 위 코드: e.isDead 필드가 있거나 isDead() 메서드가 있으면 제거 기준으로 사용
+        this.enemies = this.enemies.filter(enemy => {
+        if (enemy.isDead()) {
+            enemy.destroy();   // 안전망 (중복 호출 OK)
+            return false;
+        }
+        return true;
+        });
     }
 
     setBoundsProvider(fn) {
