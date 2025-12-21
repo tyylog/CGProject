@@ -140,7 +140,7 @@ export class Game {
         // 효과음 로드
         // Player 사운드
         this.soundSystem.loadSFX('playerAttackLeft', './assets/sounds/player/MouseLeft.mp3', 0.5);
-        this.soundSystem.loadSFX('playerAttackRight', './assets/sounds/player/MouseRight.mp3', 0.5);
+        this.soundSystem.loadSFX('playerAttackRight', './assets/sounds/player/MouseRight.m4a', 0.6);
         this.soundSystem.loadSFX('playerRun', './assets/sounds/player/Run.mp3', 0.3);
         this.soundSystem.loadSFX('playerDeath', './assets/sounds/player/Death.mp3', 0.6);
 
