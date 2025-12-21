@@ -71,6 +71,8 @@ export class Player extends Character {
         this.isJumpAttack = false;  // JumpAttack 여부 (R키)
         this.heavyAttackCooldown = 3.0;  // 강공격 쿨타임 (초)
         this.heavyAttackTimer = 0;  // 현재 쿨타임 타이머
+        this.jumpAttackCooldown = 15.0;  // JumpAttack 쿨타임 (초)
+        this.jumpAttackTimer = 0;  // JumpAttack 현재 쿨타임 타이머
         this.isDying = false;  // 죽음 애니메이션 재생 중 플래그
 
         // Root Motion 추적용 (MouseRight 전용)
@@ -444,6 +446,11 @@ export class Player extends Character {
             this.heavyAttackTimer -= delta;
         }
 
+        // JumpAttack 쿨타임 감소
+        if (this.jumpAttackTimer > 0) {
+            this.jumpAttackTimer -= delta;
+        }
+
         // yaw/pitch는 input 쪽에서 업데이트됨
         this.yaw = input.yaw;
         this.pitch = input.pitch;
@@ -635,12 +642,13 @@ export class Player extends Character {
         }
 
         // R키 - JumpAttack
-        if (input.keyPresses.has('jumpAttack') && !this.isAttacking) {
+        if (input.keyPresses.has('jumpAttack') && !this.isAttacking && this.jumpAttackTimer <= 0) {
             input.keyPresses.delete('jumpAttack');
             this.isAttacking = true;
             this.isAttackActive = true;
             this.isHeavyAttack = true;  // 강공격 취급
             this.isJumpAttack = true;   // JumpAttack 플래그
+            this.jumpAttackTimer = this.jumpAttackCooldown;  // 쿨타임 시작 (15초)
 
             // Root Motion 추적 시작
             this.rootMotionEnabled = true;
