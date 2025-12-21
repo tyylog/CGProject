@@ -55,34 +55,59 @@ export class CombatSystem {
         // 공격 애니메이션이 재생 중이 아니면 충돌 검사 안 함
         if (!player.isAttackActive) return;
 
-        // attackHitbox가 없으면 충돌 검사 불가
-        if (!player.attackHitbox || !player.attackHitboxCollider) return;
+        // JumpAttack일 때는 Strong 히트박스들 사용, 아니면 attackHitbox 사용
+        if (player.isJumpAttack) {
+            // Strong 히트박스 6개 업데이트
+            if (!player.strongHitboxes || player.strongHitboxes.length === 0) return;
+            player.updateStrongHitboxColliders();
 
-        // 🔥 플레이어 공격 중일 때만 attackHitbox 업데이트
-        player.updateAttackHitboxCollider();
+            enemies.forEach(enemy => {
+                if (!enemy.mesh || (enemy.isDead && enemy.isDead())) return;
+                if (!enemy.hitBox || !enemy.hitBoxCollider) return;
 
-        enemies.forEach(enemy => {
-            if (!enemy.mesh || (enemy.isDead && enemy.isDead())) return;
-            if (!enemy.hitBox || !enemy.hitBoxCollider) return;
+                enemy.updateHitBoxCollider();
 
-            // 🔥 플레이어 공격 중일 때만 적의 hitBox 업데이트
-            enemy.updateHitBoxCollider();
+                // 6개 Strong 히트박스 중 하나라도 충돌하면 타격
+                let hit = false;
+                for (const collider of player.strongHitboxColliders) {
+                    if (collider && collider.intersectsBox(enemy.hitBoxCollider)) {
+                        hit = true;
+                        break;
+                    }
+                }
 
-            // Box3 충돌 검사: attackHitbox와 hitBox가 겹치는지 확인
-            if (player.attackHitboxCollider.intersectsBox(enemy.hitBoxCollider)) {
-                // 연속 타격 방지를 위한 쿨타임 체크
-                const now = performance.now();
-                const lastHit = this._lastHitTime.get(enemy) || 0;
+                if (hit) {
+                    const now = performance.now();
+                    const lastHit = this._lastHitTime.get(enemy) || 0;
+                    if (now - lastHit < 1000) return;
 
-                // 1초 내에 같은 적을 다시 때리지 않음
-                if (now - lastHit < 1000) return;
+                    const damage = player.isHeavyAttack ? 30 : this.playerAttackDamage;
+                    enemy.takeDamage(damage);
+                    this._lastHitTime.set(enemy, now);
+                }
+            });
+        } else {
+            // 일반/강공격은 attackHitbox 사용
+            if (!player.attackHitbox || !player.attackHitboxCollider) return;
+            player.updateAttackHitboxCollider();
 
-                // 타격 판정 (강공격이면 데미지 30, 일반 공격이면 기본 데미지)
-                const damage = player.isHeavyAttack ? 30 : this.playerAttackDamage;
-                enemy.takeDamage(damage);
-                this._lastHitTime.set(enemy, now);
-            }
-        });
+            enemies.forEach(enemy => {
+                if (!enemy.mesh || (enemy.isDead && enemy.isDead())) return;
+                if (!enemy.hitBox || !enemy.hitBoxCollider) return;
+
+                enemy.updateHitBoxCollider();
+
+                if (player.attackHitboxCollider.intersectsBox(enemy.hitBoxCollider)) {
+                    const now = performance.now();
+                    const lastHit = this._lastHitTime.get(enemy) || 0;
+                    if (now - lastHit < 1000) return;
+
+                    const damage = player.isHeavyAttack ? 30 : this.playerAttackDamage;
+                    enemy.takeDamage(damage);
+                    this._lastHitTime.set(enemy, now);
+                }
+            });
+        }
     }
 
     _handleEnemyAttacks(delta, player, enemies) {

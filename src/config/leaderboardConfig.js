@@ -15,11 +15,10 @@ export function getOrCreatePlayerId() {
 export function getOrAskNickname() {
   const key = "cgproject_nickname";
   let nick = localStorage.getItem(key);
-  if (!nick) {
-    nick = (prompt("닉네임을 입력하세요 (1~20자)") || "Player").trim();
-    if (!nick) nick = "Player";
-    nick = nick.slice(0, 20);
-    localStorage.setItem(key, nick);
-  }
+  nick = (nick || "").trim();
+  if (!nick) nick = "";
+  nick = nick.slice(0, 20);
+  localStorage.setItem(key, nick);
+  
   return nick;
 }

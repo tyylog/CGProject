@@ -138,8 +138,11 @@ export class Enemy extends Character {
                 this.attackLeg = child;
                 child.visible = false;
                 // 발차기 잔상 효과 초기화 - 1초 후 활성화
-                this.legTrail = new SwordTrail(this.scene, this.attackLeg, './assets/images/blue.png');
-                setTimeout(() => this.legTrail.start(), 1000);
+                this._trailTimers = this._trailTimers || [];
+                const t = setTimeout(() => {
+                if (!this.isDying && this.legTrail) this.legTrail.start();
+                }, 1000);
+                this._trailTimers.push(t);
             }
             if (child.name === 'attackPunch') {
                 this.attackPunch = child;
@@ -219,6 +222,7 @@ export class Enemy extends Character {
                     }
                     if (this.mesh) this.scene.remove(this.mesh);
                     this._deadDone = true;
+                    this.destroy();
                 }
             }
 
@@ -659,4 +663,60 @@ export class Enemy extends Character {
             this.hpLabel.element.style.display = 'none';
         }
     }
+    destroy() {
+  // 이미 정리됐으면 중복 방지
+  if (this._destroyed) return;
+  this._destroyed = true;
+
+  // 1) AnimationMixer 이벤트 제거
+  if (this.mixer && this._onMixerFinished) {
+    this.mixer.removeEventListener('finished', this._onMixerFinished);
+    this._onMixerFinished = null;
+  }
+
+  // 2) SwordTrail 정리 (🔥 가장 중요)
+  if (this.legTrail) {
+    this.legTrail.dispose();
+    this.legTrail = null;
+  }
+  if (this.punchTrail) {
+    this.punchTrail.dispose();
+    this.punchTrail = null;
+  }
+  if (this.extraTrails) {
+    this.extraTrails.forEach(t => t?.dispose?.());
+    this.extraTrails = null;
+  }
+
+  // 3) CSS2D HP bar 제거 (DOM 누수 방지)
+  if (this.hpLabel) {
+    if (this.hpLabel.element?.parentNode) {
+      this.hpLabel.element.parentNode.removeChild(this.hpLabel.element);
+    }
+    if (this.hpLabel.parent) {
+      this.hpLabel.parent.remove(this.hpLabel);
+    }
+    this.hpLabel = null;
+    this.hpBarEl = null;
+  }
+
+  // 4) Scene에서 mesh 제거
+  if (this.mesh && this.scene) {
+    this.scene.remove(this.mesh);
+  }
+
+  // 5) timeout 정리 (있다면)
+  if (this._trailTimers) {
+    this._trailTimers.forEach(clearTimeout);
+    this._trailTimers = null;
+  }
+
+  // 6) 참조 끊기 (GC 가능하게)
+  this.mesh = null;
+  this.model = null;
+  this.mixer = null;
+  this.actions = null;
+  this.soundSystem = null;
+  this.scene = null;
+}
 }
