@@ -642,8 +642,13 @@ export class Player extends Character {
         }
 
         // R키 - JumpAttack
-        if (input.keyPresses.has('jumpAttack') && !this.isAttacking && this.jumpAttackTimer <= 0) {
-            input.keyPresses.delete('jumpAttack');
+        // R키 - JumpAttack (✅ 입력은 먼저 소비)
+if (input.keyPresses.has('jumpAttack')) {
+    // ✅ 성공/실패 상관없이 먼저 소비
+    input.keyPresses.delete('jumpAttack');
+
+    // 이제 성공 조건 체크
+    if (!this.isAttacking && this.jumpAttackTimer <= 0) {
             this.isAttacking = true;
             this.isAttackActive = true;
             this.isHeavyAttack = true;  // 강공격 취급
@@ -658,17 +663,22 @@ export class Player extends Character {
             }
 
             this.playAnimation('JumpAttack', false);
+
             // Strong 궤적 시작 (6개)
             for (const trail of this.strongTrails) {
                 if (trail) trail.start();
             }
-            // JumpAttack 사운드 재생 (flame + rengoku 동시 재생)
+
+            // JumpAttack 사운드
             if (this.soundSystem) {
                 this.soundSystem.playSFX('playerFlame');
                 this.soundSystem.playSFX('playerRengoku');
             }
             return;
         }
+        // 쿨타임이거나 공격중이면 그냥 아무 일도 안 일어남 (토큰은 이미 소비됨)
+    }
+
 
         // 공격 중이면 다른 애니메이션으로 전환하지 않음
         if (this.isAttacking) {
