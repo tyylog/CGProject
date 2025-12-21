@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Character } from './Character.js';
+import { SwordTrail } from '../effects/SwordTrail.js';
 
 export class Enemy extends Character {
     /**
@@ -67,9 +68,19 @@ export class Enemy extends Character {
         this.model = null;
         this.isModelLoaded = false;
 
-        // 히트박스 참조
+        // 히트박스 참조 (피격용)
         this.hitBox = null;
         this.hitBoxCollider = new THREE.Box3();
+
+        // 공격 히트박스 참조 (공격용)
+        this.attackLeg = null;      // 발차기 히트박스
+        this.attackPunch = null;    // 펀치 히트박스
+        this.attackHitboxCollider = new THREE.Box3();
+        this.currentAttackType = null;  // 'Punch' 또는 'Kick'
+
+        // 공격 잔상 효과
+        this.legTrail = null;
+        this.punchTrail = null;
 
         // 임시 메쉬 (로딩 중)
         const geom = new THREE.SphereGeometry(radius, 16, 16);
@@ -120,6 +131,40 @@ export class Enemy extends Character {
             if (child.name === 'hitBox') {
                 this.hitBox = child;
                 child.visible = false;
+            }
+
+            // 공격 히트박스들 찾아서 참조 저장 및 숨기기
+            if (child.name === 'attackleg') {
+                this.attackLeg = child;
+                child.visible = false;
+                // 발차기 잔상 효과 초기화 - 1초 후 활성화
+                this.legTrail = new SwordTrail(this.scene, this.attackLeg, './assets/images/blue.png');
+                setTimeout(() => this.legTrail.start(), 1000);
+            }
+            if (child.name === 'attackPunch') {
+                this.attackPunch = child;
+                child.visible = false;
+                // 펀치 잔상 효과 초기화 - 1초 후 활성화
+                this.punchTrail = new SwordTrail(this.scene, this.attackPunch, './assets/images/blue.png');
+                setTimeout(() => this.punchTrail.start(), 1000);
+            }
+
+            // Akaza 모델의 leg와 punch 오브젝트 숨기고 잔상 효과 추가 (1초 후 활성화)
+            if (child.name === 'leg') {
+                child.visible = false;
+                const legEffect = new SwordTrail(this.scene, child, './assets/images/blue.png');
+                if (!this.extraTrails) this.extraTrails = [];
+                this.extraTrails.push(legEffect);
+                // 1초 후 활성화
+                setTimeout(() => legEffect.start(), 1000);
+            }
+            if (child.name === 'punch') {
+                child.visible = false;
+                const punchEffect = new SwordTrail(this.scene, child, './assets/images/blue.png');
+                if (!this.extraTrails) this.extraTrails = [];
+                this.extraTrails.push(punchEffect);
+                // 1초 후 활성화
+                setTimeout(() => punchEffect.start(), 1000);
             }
         });
 
@@ -228,6 +273,40 @@ export class Enemy extends Character {
                         this.hitBox = child;
                         child.visible = false;
                     }
+
+                    // 공격 히트박스들 찾아서 참조 저장 및 숨기기
+                    if (child.name === 'attackleg') {
+                        this.attackLeg = child;
+                        child.visible = false;
+                        // 발차기 잔상 효과 초기화 - 1초 후 활성화
+                        this.legTrail = new SwordTrail(this.scene, this.attackLeg, './assets/images/blue.png');
+                        setTimeout(() => this.legTrail.start(), 1000);
+                    }
+                    if (child.name === 'attackPunch') {
+                        this.attackPunch = child;
+                        child.visible = false;
+                        // 펀치 잔상 효과 초기화 - 1초 후 활성화
+                        this.punchTrail = new SwordTrail(this.scene, this.attackPunch, './assets/images/blue.png');
+                        setTimeout(() => this.punchTrail.start(), 1000);
+                    }
+
+                    // Akaza 모델의 leg와 punch 오브젝트 숨기고 잔상 효과 추가 (1초 후 활성화)
+                    if (child.name === 'leg') {
+                        child.visible = false;
+                        const legEffect = new SwordTrail(this.scene, child, './assets/images/blue.png');
+                        if (!this.extraTrails) this.extraTrails = [];
+                        this.extraTrails.push(legEffect);
+                        // 1초 후 활성화
+                        setTimeout(() => legEffect.start(), 1000);
+                    }
+                    if (child.name === 'punch') {
+                        child.visible = false;
+                        const punchEffect = new SwordTrail(this.scene, child, './assets/images/blue.png');
+                        if (!this.extraTrails) this.extraTrails = [];
+                        this.extraTrails.push(punchEffect);
+                        // 1초 후 활성화
+                        setTimeout(() => punchEffect.start(), 1000);
+                    }
                 });
 
                 // 모델에 원래 위치/회전/스케일 적용 (필요시 추가 조정)
@@ -276,6 +355,19 @@ export class Enemy extends Character {
             this.mixer.update(delta);
         }
 
+        // 잔상 효과 업데이트
+        if (this.legTrail) {
+            this.legTrail.update(delta);
+        }
+        if (this.punchTrail) {
+            this.punchTrail.update(delta);
+        }
+
+        // 추가 잔상 효과 업데이트 (leg, punch 등)
+        if (this.extraTrails) {
+            this.extraTrails.forEach(trail => trail.update(delta));
+        }
+
         if (!this.mesh) {
             return;
         }
@@ -318,6 +410,7 @@ export class Enemy extends Character {
                         this.attackStarted = true;  // 새로운 공격 시작 플래그
                         this.attackSoundPlayed = false;  // 사운드 재생 플래그 리셋
                         const randomAttack = Math.random() < 0.5 ? 'Punch' : 'Kick';
+                        this.currentAttackType = randomAttack;  // 현재 공격 타입 저장
                         this.playAnimation(randomAttack, false);
                     }
                     // 그 외의 경우는 무조건 chase (거리 상관없이)
@@ -336,6 +429,7 @@ export class Enemy extends Character {
                     this.attackSoundPlayed = false;  // 사운드 재생 플래그 리셋
                     // attack 진입 시 랜덤 공격 애니메이션 선택
                     const randomAttack = Math.random() < 0.5 ? 'Punch' : 'Kick';
+                    this.currentAttackType = randomAttack;  // 현재 공격 타입 저장
                     this.playAnimation(randomAttack, false);
                 } else {
                     this._moveTowardsPlayer(delta, toPlayer);
@@ -471,6 +565,15 @@ export class Enemy extends Character {
     updateHitBoxCollider() {
         if (this.hitBox) {
             this.hitBoxCollider.setFromObject(this.hitBox);
+        }
+    }
+
+    updateAttackHitboxCollider() {
+        // 현재 공격 타입에 맞는 히트박스로 콜라이더 업데이트
+        if (this.currentAttackType === 'Kick' && this.attackLeg) {
+            this.attackHitboxCollider.setFromObject(this.attackLeg);
+        } else if (this.currentAttackType === 'Punch' && this.attackPunch) {
+            this.attackHitboxCollider.setFromObject(this.attackPunch);
         }
     }
 

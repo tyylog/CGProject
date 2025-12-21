@@ -41,7 +41,7 @@ export class EnvironmentSystem {
         // 모드 정의 (전부 glb 기반)
         this.modes = {
             grassland: {
-                bg: new THREE.Color(0x200010),
+                bg: new THREE.Color(0x050510),  // 더 어두운 남색 (밤하늘)
                 modelPath: 'assets/textures/ground_grass.glb',
             },
             // below modes are not used now
@@ -337,14 +337,14 @@ export class EnvironmentSystem {
         const {
             path = 'assets/models/moon.glb',
 
-            // 피벗(하늘의 기준점). 보통 맵 중앙 위
-            pivotPosition = new THREE.Vector3(0, 140, 0),
+            // 중간 거리, 낮은 높이
+            pivotPosition = new THREE.Vector3(0, 35, -150),
 
-            // 피벗으로부터 달이 얼마나 떨어져 있을지 (이게 "하늘에 떠 있음" 느낌 핵심)
-            moonOffset = new THREE.Vector3(0, 0, -220),
+            // 오프셋 없음
+            moonOffset = new THREE.Vector3(0, 0, 0),
 
-            scale = 40,
-            usePivot = true,
+            scale = 0.3,
+            usePivot = false,
         } = options;
 
         // 이미 있으면 재배치만
@@ -365,17 +365,20 @@ export class EnvironmentSystem {
             (gltf) => {
             this.moon = gltf.scene;
 
-            // 달은 조명 영향 덜 받게(안 해도 뜨긴 함)
+            // 달은 조명 영향 없이 원래 텍스처 그대로 보이게
             this.moon.traverse((c) => {
                 if (!c.isMesh) return;
                 c.castShadow = false;
                 c.receiveShadow = false;
-                const mat = c.material;
-                if (mat) {
-                if (mat.emissive) mat.emissive.set(0xffffff);
-                if ('emissiveIntensity' in mat) mat.emissiveIntensity = 0.25;
-                mat.needsUpdate = true;
-                }
+
+                // 기존 텍스처 맵 보존
+                const oldMap = c.material?.map;
+
+                // MeshBasicMaterial로 교체 (조명 영향 없이 텍스처 그대로 표시)
+                c.material = new THREE.MeshBasicMaterial({
+                    map: oldMap,
+                    side: THREE.FrontSide,
+                });
             });
 
             this.moon.scale.setScalar(scale);
