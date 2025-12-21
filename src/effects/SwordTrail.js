@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 
 export class SwordTrail {
-  constructor(scene, swordMesh, texturePath = './assets/images/fire.png', options = {}) {
+    constructor(scene, swordMesh, texturePath = './assets/images/fire.png', options = {}) {
     this.scene = scene;
     this.swordMesh = swordMesh;
     this.isActive = false;
@@ -106,13 +106,13 @@ export class SwordTrail {
           life: 1.0
         });
 
+    // 검의 월드 위치 가져오기
         if (this.trailPoints.length > this.maxPoints) {
           this.trailPoints.shift();
         }
       }
     }
-
-    // life 감소 + 필터링 (배열 새로 만들지 말고 in-place로)
+        // life 감소 + 필터링 (배열 새로 만들지 말고 in-place로)
     for (let i = 0; i < this.trailPoints.length; i++) {
       this.trailPoints[i].life -= delta * 3.0;
     }
@@ -121,17 +121,18 @@ export class SwordTrail {
       if (this.trailPoints[i].life <= 0) this.trailPoints.splice(i, 1);
     }
 
-    this._updateTrailBuffers();
-  }
+        this._updateTrailBuffers();
+        }
 
-  _updateTrailBuffers() {
+        _updateTrailBuffers() {
     const n = this.trailPoints.length;
 
-    if (n < 2) {
+        if (n < 2) {
       this.geometry.setDrawRange(0, 0);
       return;
     }
 
+    // 궤적 시작
     // vertices / uvs / colors 채우기
     for (let i = 0; i < n; i++) {
       const p = this.trailPoints[i];
@@ -186,43 +187,43 @@ export class SwordTrail {
       this._indices[idx++] = base + 2;
     }
 
-    // 업데이트 플래그
+        // 업데이트 플래그
     this.geometry.attributes.position.needsUpdate = true;
     this.geometry.attributes.uv.needsUpdate = true;
     this.geometry.attributes.color.needsUpdate = true;
     this.geometry.index.needsUpdate = true;
+    
 
-    // 실제 그릴 인덱스 수만
+        // 실제 그릴 인덱스 수만
     this.geometry.setDrawRange(0, idx);
 
-    // 바운딩 업데이트(선택): frustumCulled=false면 생략 가능
+        // 바운딩 업데이트(선택): frustumCulled=false면 생략 가능
     // this.geometry.computeBoundingSphere();
   }
-
-  dispose() {
+    dispose() {
     this.stop();
     this.trailPoints.length = 0;
-
-    if (this.mesh) {
+        
+        if (this.mesh) {
       if (this.mesh.parent) this.mesh.parent.remove(this.mesh);
       this.mesh = null;
     }
-
-    if (this.geometry) {
+        if (this.geometry) {
       this.geometry.dispose();
       this.geometry = null;
     }
+        
 
-    if (this.material) {
+        if (this.material) {
       this.material.dispose();
       this.material = null;
     }
 
+    // 정리
     if (this.texture) {
       this.texture.dispose();
       this.texture = null;
     }
-
     this.swordMesh = null;
     this.scene = null;
   }

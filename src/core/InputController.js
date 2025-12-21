@@ -54,6 +54,11 @@ export class InputController {
         if (e.code === 'Digit1' || e.code === 'Numpad1') {
             this.keyPresses.add('potion');   // 토큰은 마음대로
         }
+
+        // R키 - JumpAttack
+        if (e.code === 'KeyR') {
+            this.keyPresses.add('jumpAttack');
+        }
         });
 
 

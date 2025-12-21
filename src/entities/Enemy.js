@@ -663,9 +663,7 @@ export class Enemy extends Character {
             this.hpLabel.element.style.display = 'none';
         }
     }
-
-    // entities/Enemy.js
-destroy() {
+    destroy() {
   // 이미 정리됐으면 중복 방지
   if (this._destroyed) return;
   this._destroyed = true;
@@ -721,7 +719,4 @@ destroy() {
   this.soundSystem = null;
   this.scene = null;
 }
-
-
-    
 }
