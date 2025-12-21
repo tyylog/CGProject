@@ -25,15 +25,44 @@ export class UISystem {
         this.hpContainer.style.border = '2px solid white';
         this.hpContainer.style.background = 'rgba(0,0,0,0.4)';
         this.hpContainer.style.marginBottom = '6px';
+
+        // ✅ 핵심: 컨테이너를 relative로
+        this.hpContainer.style.position = 'relative';
+        this.hpContainer.style.overflow = 'hidden'; // 바 줄어들 때 깔끔
+
         this.hpBar = document.createElement('div');
         this.hpBar.style.height = '100%';
         this.hpBar.style.width = '100%';
         this.hpBar.style.background = '#ff4444';
+
+        // ✅ 바를 뒤에 깔기 (optional이지만 안전)
+        this.hpBar.style.position = 'absolute';
+        this.hpBar.style.left = '0';
+        this.hpBar.style.top = '0';
+        this.hpBar.style.zIndex = '1';
+
         this.hpContainer.appendChild(this.hpBar);
 
-        this.hpText = document.createElement('div');
-        this.hpText.style.fontSize = '14px';
-        this.hpText.style.marginBottom = '10px';
+        // ✅ HP 텍스트를 바 위에 올리기
+        this.hpBarText = document.createElement('div');
+        Object.assign(this.hpBarText.style, {
+            position: 'absolute',
+            inset: '0',                 // top/right/bottom/left = 0
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#fff',
+            zIndex: '2',
+            textShadow: '0 0 4px rgba(0,0,0,0.9)',
+            pointerEvents: 'none',
+        });
+
+        this.hpBarText.textContent = '0%';
+        this.hpBarText.style.paddingLeft = '2px';
+        this.hpBarText.style.boxSizing = 'border-box';
+        this.hpContainer.appendChild(this.hpBarText);
 
         // ============================
         // STAMINA 바
@@ -277,7 +306,6 @@ export class UISystem {
         // root에 추가
         this.root.appendChild(this.hpContainer);
         this.root.appendChild(this.staminaContainer);
-        this.root.appendChild(this.hpText);
         this.root.appendChild(this.skillContainer);
         this.root.appendChild(this.timeText);
 
@@ -390,7 +418,7 @@ export class UISystem {
             background: 'rgba(0,0,0,0.35)',
             border: '1px solid rgba(255,255,255,0.12)',
             fontSize: '16px',
-            whiteSpace: 'pre',
+            whiteSpace: 'normal',
             minHeight: '120px',
         });
 
@@ -441,8 +469,10 @@ export class UISystem {
         const hpRatio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
         this.hpBar.style.width = (hpRatio * 100) + '%';
 
-        // HP 텍스트
-        this.hpText.textContent = `HP: ${hp} / ${maxHp}`;
+        // HP 텍스트 (바 내부)
+        if (this.hpBarText) {
+            this.hpBarText.textContent = `${Math.round(hpRatio * 100)}%`;
+        }
 
         // STAMINA 바 비율 반영
         const stRatio = maxStamina > 0 ? Math.max(0, Math.min(1, stamina / maxStamina)) : 0;
@@ -531,20 +561,18 @@ export class UISystem {
         // 리더보드 먼저 로드
         this.leaderboardBox.textContent = 'Loading leaderboard...';
         try {
-            const top = await fetch(`${LEADERBOARD_BASE_URL}/api/leaderboard?limit=10`)
+        const top = await fetch(`${LEADERBOARD_BASE_URL}/api/leaderboard?limit=10`)
             .then(r => {
-                if (!r.ok) throw new Error(`leaderboard HTTP ${r.status}`);
-                return r.json();
+            if (!r.ok) throw new Error(`leaderboard HTTP ${r.status}`);
+            return r.json();
             });
 
-            // 기존 _renderLeaderboard는 wrap 기반이라서 여기서는 박스에 직접 렌더
-            this.leaderboardBox.textContent = '';
-            top.forEach(r => {
-            this.leaderboardBox.textContent += `#${r.rank} ${r.nickname}  ${r.score}\n`;
-            });
+        // ✅ 여기서 그리드 렌더로 통일
+        this._renderLeaderboardToBox(top);
+
         } catch (e) {
-            console.error(e);
-            this.leaderboardBox.textContent = 'Leaderboard load failed.';
+        console.error(e);
+        this.leaderboardBox.textContent = 'Leaderboard load failed.';
         }
     }
 
@@ -629,11 +657,73 @@ export class UISystem {
     }
 
     _renderLeaderboardToBox(rows) {
-        this.leaderboardBox.textContent = '';
-        (rows || []).forEach(r => {
-            this.leaderboardBox.textContent += `#${r.rank} ${r.nickname}  ${r.score}\n`;
+        this.leaderboardBox.innerHTML = '';
+
+        // ✅ 헤더
+        const header = document.createElement('div');
+        Object.assign(header.style, {
+            display: 'grid',
+            gridTemplateColumns: '64px 1fr 100px', // 아래 row랑 반드시 동일
+            columnGap: '10px',
+            alignItems: 'center',
+            paddingBottom: '6px',
+            marginBottom: '8px',
+            borderBottom: '1px solid rgba(255,255,255,0.18)',
+            opacity: '0.9',
+            fontWeight: '900',
+            fontSize: '14px',
+            letterSpacing: '1px',
         });
-    }
+
+        const hRank = document.createElement('div');
+        hRank.textContent = 'RANK';
+
+        const hName = document.createElement('div');
+        hName.textContent = 'NICKNAME';
+
+        const hScore = document.createElement('div');
+        hScore.textContent = 'SCORE';
+        hScore.style.textAlign = 'right';
+
+        header.appendChild(hRank);
+        header.appendChild(hName);
+        header.appendChild(hScore);
+        this.leaderboardBox.appendChild(header);
+
+        // ✅ 데이터 row들
+        (rows || []).forEach(r => {
+            const row = document.createElement('div');
+            Object.assign(row.style, {
+            display: 'grid',
+            gridTemplateColumns: '64px 1fr 100px',
+            columnGap: '10px',
+            alignItems: 'center',
+            lineHeight: '1.5',
+            padding: '2px 0',
+            });
+
+            const rank = document.createElement('div');
+            rank.textContent = `#${r.rank}`;
+            rank.style.fontWeight = '900';
+
+            const name = document.createElement('div');
+            name.textContent = r.nickname;
+            name.style.overflow = 'hidden';
+            name.style.textOverflow = 'ellipsis';
+            name.style.whiteSpace = 'nowrap';
+
+            const score = document.createElement('div');
+            score.textContent = `${r.score}`;
+            score.style.textAlign = 'right';
+            score.style.fontWeight = '900';
+
+            row.appendChild(rank);
+            row.appendChild(name);
+            row.appendChild(score);
+            this.leaderboardBox.appendChild(row);
+        });
+        }
+
 
     _escape(s) {
         return String(s).replace(/[&<>"']/g, (c) => ({
