@@ -148,6 +148,7 @@ export class Game {
         this.soundSystem.loadSFX('playerDeath', './assets/sounds/player/Death.mp3', 0.6);
         this.soundSystem.loadSFX('playerFlame', './assets/sounds/player/flame.m4a', 0.6);
         this.soundSystem.loadSFX('playerRengoku', './assets/sounds/player/rengoku.m4a', 0.4);
+        this.soundSystem.loadSFX('potion', './assets/sounds/player/potion-inght.wav', 0.4);
 
         // Enemy 사운드
         this.soundSystem.loadSFX('enemyAttack', './assets/sounds/enemy/Attack.mp3', 0.4);

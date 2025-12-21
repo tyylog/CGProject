@@ -734,9 +734,9 @@ if (input.keyPresses.has('jumpAttack')) {
         this.stamina = Math.min(this.maxStamina, this.stamina + this.potionStaminaAmount);
 
         // 회복 사운드 넣으려면 여기에
-        // if (this.soundSystem) {
-        //     this.soundSystem.playSFX('potion');
-        // }
+        if (this.soundSystem) {
+            this.soundSystem.playSFX('potion');
+        }
 
         return true; // 성공
     }

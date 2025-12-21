@@ -342,7 +342,7 @@ export class UISystem {
         };
 
         // 포션 래퍼 (키: 1)
-        this.potionWrapper = createSkillWrapper(this.potionContainer, createKeyHint('1'));
+        this.potionWrapper = createSkillWrapper(this.potionContainer, createKeyHint('Q'));
 
         // 강공격 래퍼 (키: 마우스 오른쪽)
         const heavyHint = document.createElement('div');
