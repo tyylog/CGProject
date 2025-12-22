@@ -16,8 +16,6 @@ const savedVersion = localStorage.getItem(STORAGE_VERSION_KEY);
 if (savedVersion !== STORAGE_VERSION) {
   // 이 프로젝트에서 쓰는 키만 정리
   localStorage.removeItem('cgproject_bestScore');
-  // 필요하면 닉네임도 초기화
-  // localStorage.removeItem('cgproject_nickname');
 
   localStorage.setItem(STORAGE_VERSION_KEY, STORAGE_VERSION);
 }
