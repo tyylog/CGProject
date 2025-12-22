@@ -35,6 +35,19 @@
             object-fit: cover;
         }
 
+        /* 상단 조작 설명 텍스트 */
+        #start-screen .control-text {
+            position: absolute;
+            top: 40px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+            z-index: 1;
+            text-align: center;
+            line-height: 1.8;
+        }
+
         /* 하단 텍스트 */
         #start-screen .start-text {
             position: absolute;
@@ -106,6 +119,10 @@
     <!-- 시작 화면 -->
     <div id="start-screen">
         <img src="./assets/images/game_start.jpg" alt="Game Start">
+        <div class="control-text">
+            WASD to move, Shift to run, Click to attack<br>
+            Q to recovery, Mouse Right and R to use skill
+        </div>
         <div class="start-text">Click or press Enter to start</div>
     </div>
 
