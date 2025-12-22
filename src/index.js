@@ -8,7 +8,7 @@ if (DEBUG_MODE) {
     document.getElementById("begin-screen")?.remove();
 }
 
-const STORAGE_VERSION = 'v0';  // 🔥 업데이트할 때마다 증가
+const STORAGE_VERSION = 'v1';  // 🔥 업데이트할 때마다 증가
 const STORAGE_VERSION_KEY = 'cgproject_storage_version';
 
 const savedVersion = localStorage.getItem(STORAGE_VERSION_KEY);
