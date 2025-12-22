@@ -488,9 +488,9 @@ export class Game {
             );
 
             this.uiSystem.showGameOver({
-            score: finalScore,
-            killCount: this.killCount,
-            elapsedTime: this.elapsedTime,
+                score: finalScore,
+                killCount: this.killCount,
+                elapsedTime: this.elapsedTime,
             });
         }
     }
