@@ -51,7 +51,7 @@ export class InputController {
         if (e.code === 'Space') this.keys.space = true;
 
         // ✅ Shift 눌러도 항상 동일하게 들어오는 code로 처리
-        if (e.code === 'Digit1' || e.code === 'Numpad1') {
+        if (e.key === 'q' || e.key === 'Q') {
             this.keyPresses.add('potion');   // 토큰은 마음대로
         }
 

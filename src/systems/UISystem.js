@@ -342,7 +342,7 @@ export class UISystem {
         };
 
         // 포션 래퍼 (키: 1)
-        this.potionWrapper = createSkillWrapper(this.potionContainer, createKeyHint('1'));
+        this.potionWrapper = createSkillWrapper(this.potionContainer, createKeyHint('Q'));
 
         // 강공격 래퍼 (키: 마우스 오른쪽)
         const heavyHint = document.createElement('div');
@@ -481,6 +481,16 @@ export class UISystem {
             marginBottom: '14px',
         });
 
+        this.bestScoreInfoText = document.createElement('div');
+        Object.assign(this.bestScoreInfoText.style, {
+            textAlign: 'center',
+            fontSize: '14px',
+            lineHeight: '1.4',
+            opacity: '0.85',
+            marginBottom: '10px',
+            color: '#ddd',
+        });
+
         this.nicknameRow = document.createElement('div');
         Object.assign(this.nicknameRow.style, {
             display: 'flex',
@@ -539,6 +549,7 @@ export class UISystem {
 
         this.gameOverPanel.appendChild(this.gameOverTitle);
         this.gameOverPanel.appendChild(this.finalScoreText);
+        this.gameOverPanel.appendChild(this.bestScoreInfoText);
         this.nicknameRow.appendChild(this.nicknameInput);
         this.nicknameRow.appendChild(this.submitBtn);
         this.gameOverPanel.appendChild(this.nicknameRow);
@@ -675,40 +686,65 @@ export class UISystem {
     }
 
     async showGameOver({ score, killCount, elapsedTime }) {
-        // 포인터락 해제
         if (document.pointerLockElement) document.exitPointerLock();
         document.body.style.cursor = 'default';
 
         const finalScore = Number(score) || 0;
-        this.finalScoreToSubmit = finalScore; // setGame()의 submitBtn에서 씀
+        this.finalScoreToSubmit = finalScore;
 
-        // ✅ constructor에서 만든 overlay를 "제거하지 말고" 표시만 켜기
+        // ✅ overlay 표시
         this.gameOverOverlay.style.display = 'block';
 
-        // 점수 표시
+        // 현재 점수
         this.finalScoreText.textContent = `Score: ${finalScore}`;
 
-        // 닉네임(로컬/기본값) 세팅: getOrAskNickname이 input prompt 띄우는 방식이면 빼도 됨
+        // =========================
+        // 🔥 최고 기록 계산
+        // =========================
+        const BEST_KEY = 'cgproject_bestScore';
+        const prevBest = Number(localStorage.getItem(BEST_KEY)) || 0;
+        const nextBest = Math.max(prevBest, finalScore);
+
+        // 최고 기록 갱신
+        if (finalScore > prevBest) {
+            localStorage.setItem(BEST_KEY, String(finalScore));
+        }
+
+        // =========================
+        // 🔎 설명 텍스트 구성
+        // =========================
+        if (finalScore > prevBest) {
+            this.bestScoreInfoText.innerHTML =
+                `🎉 <b>NEW RECORD!</b><br>
+                현재 점수: ${finalScore} · 이전 내 최고 기록: ${prevBest}<br>
+                <span style="opacity:0.8">SUBMIT 버튼을 눌러 최고 기록을 리더보드에 제출하세요.</span>`;
+        } else {
+            this.bestScoreInfoText.innerHTML =
+                `현재 점수: ${finalScore}<br>
+                내 최고 기록: ${prevBest}<br>
+                <span style="opacity:0.8">※ 리더보드에는 최고 기록만 제출됩니다.</span>`;
+        }
+
+        // 닉네임 세팅
         const nickname = (getOrAskNickname?.() || '').trim();
         if (nickname && this.nicknameInput) this.nicknameInput.value = nickname;
 
-        // 리더보드 먼저 로드
+        // 리더보드 로드
         this.leaderboardBox.textContent = 'Loading leaderboard...';
         try {
-        const top = await fetch(`${LEADERBOARD_BASE_URL}/api/leaderboard?limit=10`)
-            .then(r => {
-            if (!r.ok) throw new Error(`leaderboard HTTP ${r.status}`);
-            return r.json();
-            });
+            const top = await fetch(`${LEADERBOARD_BASE_URL}/api/leaderboard?limit=10`)
+                .then(r => {
+                    if (!r.ok) throw new Error(`leaderboard HTTP ${r.status}`);
+                    return r.json();
+                });
 
-        // ✅ 여기서 그리드 렌더로 통일
-        this._renderLeaderboardToBox(top);
-
+            this._renderLeaderboardToBox(top);
         } catch (e) {
-        console.error(e);
-        this.leaderboardBox.textContent = 'Leaderboard load failed.';
+            console.error(e);
+            this.leaderboardBox.textContent = 'Leaderboard load failed.';
         }
     }
+
 
 
     _setupDebugPanel() {
