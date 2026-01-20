@@ -51,8 +51,7 @@ app.set("trust proxy", 1);
 // JSON 바디 파서
 app.use(express.json({ limit: "64kb" }));
 
-// CORS: 처음엔 전체 허용(빠르게 개발)
-// 배포 후엔 아래에서 origin을 GitHub Pages 도메인으로 좁히는 걸 추천
+// CORS: 전체 허용
 app.use(cors({
   origin: process.env.CORS_ORIGIN || "*"
 }));
