@@ -42,6 +42,9 @@ export class Game {
         this.phaseIndex = 0;
         this.phaseLengthSec = 60; // 각 phase 당 길이 (초)
 
+        // 탭 비활성화 시 게임 멈추도록
+        this.visibilityPaused = false;
+
         // 🔥 디버그 모드면 바로 시작된 상태로
         this.isGameStarted = this.DEBUG_MODE ? true : false;
 
@@ -91,17 +94,17 @@ export class Game {
 
     _initWorld() {
         // 환경광 (세기를 낮춤)
-        const ambientLight = new THREE.AmbientLight(0x444444);
+        const ambientLight = new THREE.AmbientLight(0x555555);
         this.scene.add(ambientLight);
 
         // DirectionalLight 강도를 낮춤
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
         dirLight.position.set(5, 12, 8);
         dirLight.castShadow = true;
         this.scene.add(dirLight);
 
         // 플레이어를 따라다니는 SpotLight
-        this.playerSpotLight = new THREE.SpotLight(0xffffff, 8.0);
+        this.playerSpotLight = new THREE.SpotLight(0xffffff, 9.0);
         this.playerSpotLight.angle = Math.PI / 3;  // 더 넓은 조명 각도 (60도)
         this.playerSpotLight.penumbra = 0.9;       // 부드러운 가장자리
         this.playerSpotLight.decay = 1.0;
@@ -140,9 +143,12 @@ export class Game {
         // 효과음 로드
         // Player 사운드
         this.soundSystem.loadSFX('playerAttackLeft', './assets/sounds/player/MouseLeft.mp3', 0.5);
-        this.soundSystem.loadSFX('playerAttackRight', './assets/sounds/player/MouseRight.m4a', 0.6);
+        this.soundSystem.loadSFX('playerAttackRight', './assets/sounds/player/MouseRight.m4a', 0.5);
         this.soundSystem.loadSFX('playerRun', './assets/sounds/player/Run.mp3', 0.3);
         this.soundSystem.loadSFX('playerDeath', './assets/sounds/player/Death.mp3', 0.6);
+        this.soundSystem.loadSFX('playerFlame', './assets/sounds/player/flame.m4a', 0.6);
+        this.soundSystem.loadSFX('playerRengoku', './assets/sounds/player/rengoku.m4a', 0.4);
+        this.soundSystem.loadSFX('potion', './assets/sounds/player/potion-inght.wav', 0.4);
 
         // Enemy 사운드
         this.soundSystem.loadSFX('enemyAttack', './assets/sounds/enemy/Attack.mp3', 0.4);
@@ -283,7 +289,16 @@ export class Game {
     }
 
     animate() {
-        const delta = this.clock.getDelta();
+        let delta = this.clock.getDelta();
+        delta = Math.min(delta, 0.05); // 최대 50ms만 반영
+
+        // 탭 비활성이면 게임 로직 멈추도록
+        if (this.visibilityPaused) {
+            this.renderer.render(this.scene, this.camera);
+            this.labelRenderer.render(this.scene, this.camera);
+            requestAnimationFrame(this.animate);
+            return;
+        }
 
         // 게임이 시작되지 않았으면 렌더링만 하고 리턴
         if (!this.isGameStarted) {
@@ -396,6 +411,8 @@ export class Game {
                 potionCount: this.player.potionCount ?? 0,
                 heavyAttackCooldown: this.player.heavyAttackCooldown ?? 3.0,
                 heavyAttackTimer: this.player.heavyAttackTimer ?? 0,
+                jumpAttackCooldown: this.player.jumpAttackCooldown ?? 15.0,
+                jumpAttackTimer: this.player.jumpAttackTimer ?? 0,
                 debugInfo,  // 디버그 정보 전달
             });
         }
@@ -418,8 +435,8 @@ export class Game {
     }
 
     _updateCamera() {
-        const pos = this.player.mesh.position;
-        const offset = this.player.cameraOffset; 
+        const pos = this.player.getCameraTargetPosition();
+        const offset = this.player.cameraOffset;
         // 예: new THREE.Vector3(0, 2, 10)
         // offset.z = 카메라와 플레이어 거리 (반지름)
         // offset.y = 플레이어보다 카메라가 얼마나 더 위에 있을지 (추가높이)
@@ -471,9 +488,9 @@ export class Game {
             );
 
             this.uiSystem.showGameOver({
-            score: finalScore,
-            killCount: this.killCount,
-            elapsedTime: this.elapsedTime,
+                score: finalScore,
+                killCount: this.killCount,
+                elapsedTime: this.elapsedTime,
             });
         }
     }
@@ -521,6 +538,15 @@ export class Game {
     restart() {
         // 페이지 리로드로 간단히 재시작
         window.location.reload();
+    }
+
+    setVisibilityPaused(v) {
+        this.visibilityPaused = v;
+
+        // 탭에서 돌아올 때 dt 폭주(수초~수십초)를 한 번 비워줌
+        if (!v && this.clock) {
+            this.clock.getDelta();
+        }
     }
 
 }

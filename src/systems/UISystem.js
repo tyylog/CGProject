@@ -247,15 +247,130 @@ export class UISystem {
         this.heavyAttackContainer.appendChild(this.heavyAttackIcon);
         this.heavyAttackContainer.appendChild(this.heavyAttackCooldownText);
 
+        // ============================
+        // 🔥 JumpAttack(R키) 쿨타임 UI (강공격 옆)
+        // ============================
+        this.jumpAttackContainer = document.createElement('div');
+        Object.assign(this.jumpAttackContainer.style, {
+            position: 'relative',
+            width: '72px',
+            height: '72px',
+            background: '#7a7a7a',
+            border: '3px solid rgba(255,255,255,0.35)',
+            borderRadius: '6px',
+            boxShadow: '0 0 10px rgba(0,0,0,0.35)',
+            marginLeft: '10px',
+            zIndex: 999,
+            pointerEvents: 'none',
+        });
+
+        // JumpAttack 아이콘 (이미지)
+        this.jumpAttackIcon = document.createElement('img');
+        this.jumpAttackIcon.src = './assets/images/jumpattack.png';
+        Object.assign(this.jumpAttackIcon.style, {
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '52px',
+            height: '52px',
+            objectFit: 'contain',
+            imageRendering: 'pixelated',
+            filter: 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
+        });
+
+        // 쿨타임 오버레이 (어둡게 덮음)
+        this.jumpAttackOverlay = document.createElement('div');
+        Object.assign(this.jumpAttackOverlay.style, {
+            position: 'absolute',
+            bottom: '0',
+            left: '0',
+            width: '100%',
+            height: '0%',
+            background: 'rgba(0,0,0,0.7)',
+            borderRadius: '3px',
+            transition: 'height 0.1s linear',
+        });
+
+        // 쿨타임 텍스트
+        this.jumpAttackCooldownText = document.createElement('div');
+        Object.assign(this.jumpAttackCooldownText.style, {
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: '#ffffff',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '18px',
+            fontWeight: '900',
+            textShadow: '0 0 3px rgba(0,0,0,0.9)',
+            zIndex: '10',
+        });
+
+        this.jumpAttackContainer.appendChild(this.jumpAttackOverlay);
+        this.jumpAttackContainer.appendChild(this.jumpAttackIcon);
+        this.jumpAttackContainer.appendChild(this.jumpAttackCooldownText);
+
+        // ============================
+        // 키 힌트 스타일 헬퍼
+        // ============================
+        const createKeyHint = (text) => {
+            const hint = document.createElement('div');
+            Object.assign(hint.style, {
+                textAlign: 'center',
+                marginTop: '4px',
+                fontSize: '12px',
+                fontWeight: '700',
+                color: 'rgba(255,255,255,0.85)',
+                textShadow: '0 0 3px rgba(0,0,0,0.9)',
+            });
+            hint.textContent = text;
+            return hint;
+        };
+
+        // 스킬 래퍼 (아이콘 + 키 힌트)
+        const createSkillWrapper = (container, hintElement) => {
+            const wrapper = document.createElement('div');
+            Object.assign(wrapper.style, {
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+            });
+            wrapper.appendChild(container);
+            wrapper.appendChild(hintElement);
+            return wrapper;
+        };
+
+        // 포션 래퍼 (키: 1)
+        this.potionWrapper = createSkillWrapper(this.potionContainer, createKeyHint('Q'));
+
+        // 강공격 래퍼 (키: 마우스 오른쪽)
+        const heavyHint = document.createElement('div');
+        Object.assign(heavyHint.style, {
+            textAlign: 'center',
+            marginTop: '4px',
+            fontSize: '14px',
+            color: 'rgba(255,255,255,0.85)',
+            textShadow: '0 0 3px rgba(0,0,0,0.9)',
+        });
+        heavyHint.innerHTML = '🖱️Right';  // 마우스 오른쪽 아이콘
+        this.heavyAttackWrapper = createSkillWrapper(this.heavyAttackContainer, heavyHint);
+        this.heavyAttackWrapper.style.marginLeft = '10px';
+
+        // JumpAttack 래퍼 (키: R)
+        this.jumpAttackWrapper = createSkillWrapper(this.jumpAttackContainer, createKeyHint('R'));
+        this.jumpAttackWrapper.style.marginLeft = '10px';
+
         // 포션과 강공격을 담을 가로 컨테이너
         this.skillContainer = document.createElement('div');
         Object.assign(this.skillContainer.style, {
             display: 'flex',
             flexDirection: 'row',
-            alignItems: 'center',
+            alignItems: 'flex-start',
         });
-        this.skillContainer.appendChild(this.potionContainer);
-        this.skillContainer.appendChild(this.heavyAttackContainer);
+        this.skillContainer.appendChild(this.potionWrapper);
+        this.skillContainer.appendChild(this.heavyAttackWrapper);
+        this.skillContainer.appendChild(this.jumpAttackWrapper);
 
         // ============================
         // 게임 오버 텍스트
@@ -366,6 +481,16 @@ export class UISystem {
             marginBottom: '14px',
         });
 
+        this.bestScoreInfoText = document.createElement('div');
+        Object.assign(this.bestScoreInfoText.style, {
+            textAlign: 'center',
+            fontSize: '14px',
+            lineHeight: '1.4',
+            opacity: '0.85',
+            marginBottom: '10px',
+            color: '#ddd',
+        });
+
         this.nicknameRow = document.createElement('div');
         Object.assign(this.nicknameRow.style, {
             display: 'flex',
@@ -424,6 +549,7 @@ export class UISystem {
 
         this.gameOverPanel.appendChild(this.gameOverTitle);
         this.gameOverPanel.appendChild(this.finalScoreText);
+        this.gameOverPanel.appendChild(this.bestScoreInfoText);
         this.nicknameRow.appendChild(this.nicknameInput);
         this.nicknameRow.appendChild(this.submitBtn);
         this.gameOverPanel.appendChild(this.nicknameRow);
@@ -462,6 +588,8 @@ export class UISystem {
             potionCount = 0,
             heavyAttackCooldown = 3.0,
             heavyAttackTimer = 0,
+            jumpAttackCooldown = 15.0,
+            jumpAttackTimer = 0,
             debugInfo,
         } = data;
 
@@ -515,6 +643,23 @@ export class UISystem {
             }
         }
 
+        // 🔥 JumpAttack 쿨타임 UI 갱신
+        if (this.jumpAttackOverlay && this.jumpAttackCooldownText) {
+            if (jumpAttackTimer > 0) {
+                // 쿨타임 중: 오버레이 높이를 쿨타임 비율만큼 표시
+                const cooldownRatio = jumpAttackTimer / jumpAttackCooldown;
+                this.jumpAttackOverlay.style.height = (cooldownRatio * 100) + '%';
+
+                // 남은 시간 텍스트 표시 (소수점 첫째자리까지)
+                this.jumpAttackCooldownText.textContent = jumpAttackTimer.toFixed(1);
+                this.jumpAttackCooldownText.style.display = 'block';
+            } else {
+                // 쿨타임 끝: 오버레이 숨김
+                this.jumpAttackOverlay.style.height = '0%';
+                this.jumpAttackCooldownText.style.display = 'none';
+            }
+        }
+
         // 🔹 디버그 패널 갱신
         if (this.debugMode && this.debugEl && debugInfo) {
             const p = debugInfo.playerPos;
@@ -541,40 +686,65 @@ export class UISystem {
     }
 
     async showGameOver({ score, killCount, elapsedTime }) {
-        // 포인터락 해제
         if (document.pointerLockElement) document.exitPointerLock();
         document.body.style.cursor = 'default';
 
         const finalScore = Number(score) || 0;
-        this.finalScoreToSubmit = finalScore; // setGame()의 submitBtn에서 씀
+        this.finalScoreToSubmit = finalScore;
 
-        // ✅ constructor에서 만든 overlay를 "제거하지 말고" 표시만 켜기
+        // ✅ overlay 표시
         this.gameOverOverlay.style.display = 'block';
 
-        // 점수 표시
+        // 현재 점수
         this.finalScoreText.textContent = `Score: ${finalScore}`;
 
-        // 닉네임(로컬/기본값) 세팅: getOrAskNickname이 input prompt 띄우는 방식이면 빼도 됨
+        // =========================
+        // 🔥 최고 기록 계산
+        // =========================
+        const BEST_KEY = 'cgproject_bestScore';
+        const prevBest = Number(localStorage.getItem(BEST_KEY)) || 0;
+        const nextBest = Math.max(prevBest, finalScore);
+
+        // 최고 기록 갱신
+        if (finalScore > prevBest) {
+            localStorage.setItem(BEST_KEY, String(finalScore));
+        }
+
+        // =========================
+        // 🔎 설명 텍스트 구성
+        // =========================
+        if (finalScore > prevBest) {
+            this.bestScoreInfoText.innerHTML =
+                `🎉 <b>NEW RECORD!</b><br>
+                현재 점수: ${finalScore} · 이전 내 최고 기록: ${prevBest}<br>
+                <span style="opacity:0.8">SUBMIT 버튼을 눌러 최고 기록을 리더보드에 제출하세요.</span>`;
+        } else {
+            this.bestScoreInfoText.innerHTML =
+                `현재 점수: ${finalScore}<br>
+                내 최고 기록: ${prevBest}<br>
+                <span style="opacity:0.8">※ 리더보드에는 최고 기록만 제출됩니다.</span>`;
+        }
+
+        // 닉네임 세팅
         const nickname = (getOrAskNickname?.() || '').trim();
         if (nickname && this.nicknameInput) this.nicknameInput.value = nickname;
 
-        // 리더보드 먼저 로드
+        // 리더보드 로드
         this.leaderboardBox.textContent = 'Loading leaderboard...';
         try {
-        const top = await fetch(`${LEADERBOARD_BASE_URL}/api/leaderboard?limit=10`)
-            .then(r => {
-            if (!r.ok) throw new Error(`leaderboard HTTP ${r.status}`);
-            return r.json();
-            });
+            const top = await fetch(`${LEADERBOARD_BASE_URL}/api/leaderboard?limit=10`)
+                .then(r => {
+                    if (!r.ok) throw new Error(`leaderboard HTTP ${r.status}`);
+                    return r.json();
+                });
 
-        // ✅ 여기서 그리드 렌더로 통일
-        this._renderLeaderboardToBox(top);
-
+            this._renderLeaderboardToBox(top);
         } catch (e) {
-        console.error(e);
-        this.leaderboardBox.textContent = 'Leaderboard load failed.';
+            console.error(e);
+            this.leaderboardBox.textContent = 'Leaderboard load failed.';
         }
     }
+
 
 
     _setupDebugPanel() {

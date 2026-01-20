@@ -32,6 +32,13 @@ export class Player extends Character {
         this.attackHitbox = null;
         this.attackHitboxCollider = new THREE.Box3();
 
+        // Strong 공격 히트박스 참조 (강공격용) - 6개
+        this.strongHitboxes = [];
+        this.strongHitboxColliders = [];
+        for (let i = 0; i < 6; i++) {
+            this.strongHitboxColliders.push(new THREE.Box3());
+        }
+
         // 피격 히트박스 참조 (적의 공격을 맞는 용도)
         this.hitBox = null;
         this.hitBoxCollider = new THREE.Box3();
@@ -41,6 +48,7 @@ export class Player extends Character {
 
         // 검 궤적 효과
         this.swordTrail = null;
+        this.strongTrails = [];  // Strong 히트박스용 궤적 (6개)
 
         // 발 잔상 효과
         this.leftFootTrail = null;
@@ -60,9 +68,18 @@ export class Player extends Character {
         this.isAttacking = false;  // 공격 중 플래그 (이동 제한용)
         this.isAttackActive = false;  // 실제 공격 판정 활성화 플래그
         this.isHeavyAttack = false;  // 강공격 여부 (우클릭)
+        this.isJumpAttack = false;  // JumpAttack 여부 (R키)
         this.heavyAttackCooldown = 3.0;  // 강공격 쿨타임 (초)
         this.heavyAttackTimer = 0;  // 현재 쿨타임 타이머
+        this.jumpAttackCooldown = 15.0;  // JumpAttack 쿨타임 (초)
+        this.jumpAttackTimer = 0;  // JumpAttack 현재 쿨타임 타이머
         this.isDying = false;  // 죽음 애니메이션 재생 중 플래그
+
+        // Root Motion 추적용 (MouseRight 전용)
+        this.rootMotionEnabled = false;
+        this.rootBone = null;
+        this.rootMotionStartPos = new THREE.Vector3();  // 애니메이션 시작 시 루트 본 월드 위치
+        this.rootMotionStartPlayerPos = new THREE.Vector3();  // 애니메이션 시작 시 플레이어 위치
 
         // 스태미너 관련
         this.maxStamina = 100;
@@ -141,10 +158,32 @@ export class Player extends Character {
                         this.rightFootTrail.start();
                         console.log('rightfoot trail initialized');
                     }
+
+                    // Strong1~6 공격 히트박스 찾아서 참조 저장 및 숨기기 (강공격용)
+                    const strongMatch = child.name.match(/^Strong(\d)$/);
+                    if (strongMatch) {
+                        const index = parseInt(strongMatch[1]) - 1;  // Strong1 -> index 0
+                        this.strongHitboxes[index] = child;
+                        child.visible = false;
+                        console.log(`Strong${strongMatch[1]} hitbox found and hidden`);
+
+                        // Strong 궤적 효과 초기화 (오프셋 4배)
+                        const trail = new SwordTrail(this.scene, child, './assets/images/fire.png', { scale: 7.0 });
+                        this.strongTrails[index] = trail;
+                        console.log(`StrongTrail${strongMatch[1]} initialized`);
+                    }
                 });
 
                 // 모델 크기 조정 (필요시)
                 this.model.scale.set(1, 1, 1);
+
+                // 루트 본 찾기 (Root Motion 추적용)
+                this.model.traverse((child) => {
+                    if (child.isBone && (child.name === 'mixamorigHips' || child.name === 'Hips' || child.name === 'Root')) {
+                        this.rootBone = child;
+                        console.log('Root bone found:', child.name);
+                    }
+                });
 
                 // 메쉬를 모델로 교체
                 this.mesh = this.model;
@@ -156,7 +195,7 @@ export class Player extends Character {
                 if (minY !== 0) {
                     this.model.position.y -= minY;
                 }
-                
+
                 // 보정했으니 base offset 제거
                 this.modelBaseOffset = 0;
 
@@ -195,14 +234,40 @@ export class Player extends Character {
                     }
 
                     // 공격/점프 끝나면 Idle로 복귀
-                    if (clipName === 'MouseLeft' || clipName === 'MouseRight' || clipName === 'Jump') {
-                        this.playAnimation('Idle', true);
+                    if (clipName === 'MouseLeft' || clipName === 'MouseRight' || clipName === 'Jump' || clipName === 'JumpAttack') {
+                        // MouseRight/JumpAttack 애니메이션 종료 시 루트 본의 최종 위치로 이동
+                        if ((clipName === 'MouseRight' || clipName === 'JumpAttack') && this.rootMotionEnabled && this.rootBone) {
+                            // 현재 루트 본의 월드 위치
+                            const finalRootPos = new THREE.Vector3();
+                            this.rootBone.getWorldPosition(finalRootPos);
+
+                            // 시작 위치와 최종 위치의 차이 계산
+                            const delta = finalRootPos.clone().sub(this.rootMotionStartPos);
+
+                            // 플레이어 위치를 시작 위치 + 이동량으로 설정
+                            this.mesh.position.x = this.rootMotionStartPlayerPos.x + delta.x;
+                            this.mesh.position.z = this.rootMotionStartPlayerPos.z + delta.z;
+
+                            this.rootMotionEnabled = false;
+
+                            // 페이드 없이 즉시 Idle로 전환 (뒤로 가는 모션 방지)
+                            this.playAnimation('Idle', true, 0);
+                        } else {
+                            this.playAnimation('Idle', true);
+                        }
                         this.isAttacking = false;
                         this.isAttackActive = false;
+                        this.isJumpAttack = false;
 
                         // 검 궤적 정지
                         if (this.swordTrail && (clipName === 'MouseLeft' || clipName === 'MouseRight')) {
                             this.swordTrail.stop();
+                        }
+                        // Strong 궤적 정지 (6개)
+                        if (clipName === 'JumpAttack') {
+                            for (const trail of this.strongTrails) {
+                                if (trail) trail.stop();
+                            }
                         }
                     }
                 });
@@ -220,7 +285,7 @@ export class Player extends Character {
         );
     }
 
-    playAnimation(name, loop = true) {
+    playAnimation(name, loop = true, fadeTime = 0.2) {
         if (!this.isModelLoaded || !this.actions[name]) {
             return;
         }
@@ -233,26 +298,36 @@ export class Player extends Character {
 
         // 이전 애니메이션 페이드아웃
         if (this.currentAction) {
-            this.currentAction.fadeOut(0.2);
+            if (fadeTime === 0) {
+                this.currentAction.stop();
+            } else {
+                this.currentAction.fadeOut(fadeTime);
+            }
         }
 
-        // 새 애니메이션 페이드인
+        // 새 애니메이션 설정
         newAction.reset();
-        newAction.fadeIn(0.2);
         newAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce);
 
         if (!loop) {
             newAction.clampWhenFinished = true;
         }
 
-        // 공격 애니메이션은 1.5배 빠르게 재생
+        // 공격 애니메이션은 1.3배 빠르게 재생
         if (name === 'MouseLeft' || name === 'MouseRight') {
             newAction.setEffectiveTimeScale(1.3);
         } else {
             newAction.setEffectiveTimeScale(1.0);
         }
 
-        newAction.play();
+        // fadeTime에 따라 전환 방식 결정
+        if (fadeTime === 0) {
+            // 즉시 전환 (T-pose 방지를 위해 weight를 1로 설정)
+            newAction.setEffectiveWeight(1);
+            newAction.play();
+        } else {
+            newAction.fadeIn(fadeTime).play();
+        }
         this.currentAction = newAction;
     }
 
@@ -320,6 +395,46 @@ export class Player extends Character {
             this.swordTrail.update(delta);
         }
 
+        // Strong 궤적 업데이트 (6개)
+        for (const trail of this.strongTrails) {
+            if (trail) trail.update(delta);
+        }
+
+        // JumpAttack 애니메이션 60%에서 강제 종료
+        if (this.isJumpAttack && this.actions['JumpAttack']) {
+            const action = this.actions['JumpAttack'];
+            const clip = action.getClip();
+            const progress = action.time / clip.duration;
+
+            if (progress >= 0.6) {
+                // Root Motion 적용 (최종 위치로 이동)
+                if (this.rootMotionEnabled && this.rootBone) {
+                    const finalRootPos = new THREE.Vector3();
+                    this.rootBone.getWorldPosition(finalRootPos);
+
+                    const delta = finalRootPos.clone().sub(this.rootMotionStartPos);
+
+                    this.mesh.position.x = this.rootMotionStartPlayerPos.x + delta.x;
+                    this.mesh.position.z = this.rootMotionStartPlayerPos.z + delta.z;
+
+                    this.rootMotionEnabled = false;
+                }
+
+                // 플래그 리셋
+                this.isAttacking = false;
+                this.isAttackActive = false;
+                this.isJumpAttack = false;
+
+                // Strong 궤적 정지 (6개)
+                for (const trail of this.strongTrails) {
+                    if (trail) trail.stop();
+                }
+
+                // Idle로 즉시 전환 (T-pose 방지)
+                this.playAnimation('Idle', true, 0);
+            }
+        }
+
         // 죽은 상태에서는 입력 처리 안 함
         if (this.isDying) {
             this.updateCollider();
@@ -329,6 +444,11 @@ export class Player extends Character {
         // 강공격 쿨타임 감소
         if (this.heavyAttackTimer > 0) {
             this.heavyAttackTimer -= delta;
+        }
+
+        // JumpAttack 쿨타임 감소
+        if (this.jumpAttackTimer > 0) {
+            this.jumpAttackTimer -= delta;
         }
 
         // yaw/pitch는 input 쪽에서 업데이트됨
@@ -501,6 +621,14 @@ export class Player extends Character {
             this.isAttackActive = true;  // 공격 판정 활성화
             this.isHeavyAttack = true;  // 강공격
             this.heavyAttackTimer = this.heavyAttackCooldown;  // 쿨타임 시작
+
+            // Root Motion 추적 시작
+            this.rootMotionEnabled = true;
+            this.rootMotionStartPlayerPos.copy(this.mesh.position);  // 플레이어 시작 위치 저장
+            if (this.rootBone) {
+                this.rootBone.getWorldPosition(this.rootMotionStartPos);  // 루트 본 시작 월드 위치 저장
+            }
+
             this.playAnimation('MouseRight', false);
             // 검 궤적 시작
             if (this.swordTrail) {
@@ -512,6 +640,45 @@ export class Player extends Character {
             }
             return;
         }
+
+        // R키 - JumpAttack
+        // R키 - JumpAttack (✅ 입력은 먼저 소비)
+if (input.keyPresses.has('jumpAttack')) {
+    // ✅ 성공/실패 상관없이 먼저 소비
+    input.keyPresses.delete('jumpAttack');
+
+    // 이제 성공 조건 체크
+    if (!this.isAttacking && this.jumpAttackTimer <= 0) {
+            this.isAttacking = true;
+            this.isAttackActive = true;
+            this.isHeavyAttack = true;  // 강공격 취급
+            this.isJumpAttack = true;   // JumpAttack 플래그
+            this.jumpAttackTimer = this.jumpAttackCooldown;  // 쿨타임 시작 (15초)
+
+            // Root Motion 추적 시작
+            this.rootMotionEnabled = true;
+            this.rootMotionStartPlayerPos.copy(this.mesh.position);
+            if (this.rootBone) {
+                this.rootBone.getWorldPosition(this.rootMotionStartPos);
+            }
+
+            this.playAnimation('JumpAttack', false);
+
+            // Strong 궤적 시작 (6개)
+            for (const trail of this.strongTrails) {
+                if (trail) trail.start();
+            }
+
+            // JumpAttack 사운드
+            if (this.soundSystem) {
+                this.soundSystem.playSFX('playerFlame');
+                this.soundSystem.playSFX('playerRengoku');
+            }
+            return;
+        }
+        // 쿨타임이거나 공격중이면 그냥 아무 일도 안 일어남 (토큰은 이미 소비됨)
+    }
+
 
         // 공격 중이면 다른 애니메이션으로 전환하지 않음
         if (this.isAttacking) {
@@ -540,6 +707,14 @@ export class Player extends Character {
         }
     }
 
+    updateStrongHitboxColliders() {
+        for (let i = 0; i < this.strongHitboxes.length; i++) {
+            if (this.strongHitboxes[i]) {
+                this.strongHitboxColliders[i].setFromObject(this.strongHitboxes[i]);
+            }
+        }
+    }
+
     updateHitBoxCollider() {
         if (this.hitBox) {
             this.hitBoxCollider.setFromObject(this.hitBox);
@@ -559,14 +734,31 @@ export class Player extends Character {
         this.stamina = Math.min(this.maxStamina, this.stamina + this.potionStaminaAmount);
 
         // 회복 사운드 넣으려면 여기에
-        // if (this.soundSystem) {
-        //     this.soundSystem.playSFX('potion');
-        // }
+        if (this.soundSystem) {
+            this.soundSystem.playSFX('potion');
+        }
 
         return true; // 성공
     }
 
     addPotion(count = 1) {
         this.potionCount += count;
+    }
+
+    // 카메라가 따라갈 위치 반환 (Root Motion 활성화 시 루트 본 위치 기준)
+    getCameraTargetPosition() {
+        if (this.rootMotionEnabled && this.rootBone) {
+            // 루트 본의 현재 월드 위치 기준으로 카메라 타겟 계산
+            const rootWorldPos = new THREE.Vector3();
+            this.rootBone.getWorldPosition(rootWorldPos);
+
+            // 시작 위치 + (현재 루트 본 위치 - 시작 루트 본 위치)
+            return new THREE.Vector3(
+                this.rootMotionStartPlayerPos.x + (rootWorldPos.x - this.rootMotionStartPos.x),
+                this.mesh.position.y,
+                this.rootMotionStartPlayerPos.z + (rootWorldPos.z - this.rootMotionStartPos.z)
+            );
+        }
+        return this.mesh.position;
     }
 }
